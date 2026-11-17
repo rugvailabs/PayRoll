@@ -1,0 +1,430 @@
+// Multi-tenant payroll, timesheet and billing system.
+// Every business record carries organizationId; all queries are scoped by it.
+// Money is stored in integer cents, hours in integer minutes.
+// Local dev uses SQLite. For production change provider to "postgresql".
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id              String   @id @default(cuid())
+  name            String
+  slug            String   @unique
+  email           String?
+  phone           String?
+  address         String?
+  city            String?
+  state           String?
+  zip             String?
+  country         String   @default("United States")
+  currency        String   @default("USD")
+  taxId           String?
+  invoicePrefix   String   @default("INV-")
+  nextInvoiceNo   Int      @default(1001)
+  defaultTermsDays Int     @default(30)
+  // Reminder schedule, comma separated day offsets relative to due date.
+  // Negative = before due date, 0 = on due date, positive = days overdue.
+  reminderOffsets String   @default("-3,0,1,7,15,30")
+  remindersEnabled Boolean @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  users         User[]
+  employees     Employee[]
+  clients       Client[]
+  placements    Placement[]
+  timesheets    Timesheet[]
+  invoices      Invoice[]
+  payments      Payment[]
+  payrollRuns   PayrollRun[]
+  payslips      Payslip[]
+  notifications Notification[]
+  emailLogs     EmailLog[]
+  auditLogs     AuditLog[]
+  departments   Department[]
+  jobTitles     JobTitle[]
+}
+
+model User {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  name           String
+  passwordHash   String?
+  role           String    @default("EMPLOYEE") // ADMIN | MANAGER | ACCOUNTANT | EMPLOYEE
+  isActive       Boolean   @default(true)
+  mustChangePassword Boolean @default(true)
+  inviteToken    String?   @unique
+  inviteExpires  DateTime?
+  lastLoginAt    DateTime?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  employee       Employee?
+  notifications  Notification[]
+
+  @@unique([organizationId, email])
+  @@index([email])
+}
+
+model Department {
+  id             String @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  employees      Employee[]
+
+  @@unique([organizationId, name])
+}
+
+model JobTitle {
+  id             String @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String
+  employees      Employee[]
+
+  @@unique([organizationId, name])
+}
+
+model Employee {
+  id                String    @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId            String?   @unique
+  user              User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  employeeCode      String    // "Employee ID" shown in the UI
+  firstName         String
+  middleName        String?
+  lastName          String
+  shortName         String?
+  email             String
+  alternateEmail    String?
+  phone             String?
+  dateOfBirth       DateTime?
+  ssnLast4          String?   // only the last 4 digits are stored
+  gender            String?
+  ethnicity         String?
+  maritalStatus     String?
+  veteranStatus     String?
+
+  jobTitleId        String?
+  jobTitle          JobTitle? @relation(fields: [jobTitleId], references: [id], onDelete: SetNull)
+  departmentId      String?
+  department        Department? @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  employmentType    String    @default("W2") // W2 | 1099 | C2C | FULL_TIME | PART_TIME
+  classification    String    @default("BILLABLE") // BILLABLE | NON_BILLABLE
+  profileType       String    @default("WORKER") // WORKER | BACK_OFFICE
+  workAuthorization String?
+  category          String?
+  reportingManagerId String?
+  reportingManager  Employee? @relation("ReportingManager", fields: [reportingManagerId], references: [id], onDelete: SetNull)
+  reports           Employee[] @relation("ReportingManager")
+
+  dateOfJoining     DateTime?
+  addressLine       String?
+  city              String?
+  state             String?
+  zip               String?
+  country           String    @default("United States")
+  payrollId         String?
+  workerId          String?
+
+  // Pay details
+  payType           String    @default("HOURLY") // HOURLY | SALARY
+  defaultPayRate    Int       @default(0) // cents per hour (or per period for salary)
+  bankName          String?
+  bankAccountLast4  String?
+  bankRouting       String?
+
+  status            String    @default("ACTIVE") // ACTIVE | INACTIVE | TERMINATED
+  terminationDate   DateTime?
+  notes             String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  placements        Placement[]
+  timesheets        Timesheet[]
+  payslips          Payslip[]
+
+  @@unique([organizationId, employeeCode])
+  @@index([organizationId, status])
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientCode     String
+  name           String
+  website        String?
+  industry       String?
+  phone          String?
+  addressLine    String?
+  city           String?
+  state          String?
+  zip            String?
+  country        String   @default("United States")
+  taxId          String?
+
+  billingContactName  String?
+  billingEmail        String   // invoices and reminders go here
+  billingCcEmails     String?  // comma separated
+  approverName        String?
+  approverEmail       String?
+  paymentTermsDays    Int      @default(30)
+  invoiceFrequency    String   @default("MONTHLY") // WEEKLY | BIWEEKLY | SEMIMONTHLY | MONTHLY
+  remindersEnabled    Boolean  @default(true)
+  status         String   @default("ACTIVE") // ACTIVE | INACTIVE
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  placements     Placement[]
+  invoices       Invoice[]
+  payments       Payment[]
+
+  @@unique([organizationId, clientCode])
+  @@index([organizationId, status])
+}
+
+// Assignment of an employee to a client with rates.
+model Placement {
+  id                 String    @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId         String
+  employee           Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  clientId           String
+  client             Client    @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  jobTitle           String?
+  projectName        String?
+  poNumber           String?
+  startDate          DateTime
+  endDate            DateTime?
+  timesheetFrequency String    @default("MONTHLY") // WEEKLY | BIWEEKLY | SEMIMONTHLY | MONTHLY
+  billRate           Int       // cents/hour charged to client
+  otBillRate         Int       @default(0)
+  payRate            Int       // cents/hour paid to employee
+  otPayRate          Int       @default(0)
+  status             String    @default("ACTIVE") // ACTIVE | ENDED
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  timesheets         Timesheet[]
+
+  @@index([organizationId, status])
+}
+
+model Timesheet {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  placementId    String
+  placement      Placement @relation(fields: [placementId], references: [id], onDelete: Cascade)
+  periodStart    DateTime
+  periodEnd      DateTime
+  status         String    @default("DRAFT") // DRAFT | SUBMITTED | APPROVED | REJECTED
+  totalMinutes   Int       @default(0)
+  regularMinutes Int       @default(0)
+  overtimeMinutes Int      @default(0)
+  billableMinutes Int      @default(0)
+  employeeNote   String?
+  reviewNote     String?
+  submittedAt    DateTime?
+  reviewedAt     DateTime?
+  reviewedById   String?
+  invoiceId      String?
+  invoice        Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
+  payslipId      String?
+  payslip        Payslip?  @relation(fields: [payslipId], references: [id], onDelete: SetNull)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  entries        TimesheetEntry[]
+  attachments    Attachment[]
+
+  @@unique([placementId, periodStart, periodEnd])
+  @@index([organizationId, status])
+}
+
+model TimesheetEntry {
+  id              String    @id @default(cuid())
+  timesheetId     String
+  timesheet       Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  workDate        DateTime
+  regularMinutes  Int       @default(0)
+  overtimeMinutes Int       @default(0)
+  note            String?
+
+  @@unique([timesheetId, workDate])
+}
+
+model Attachment {
+  id           String    @id @default(cuid())
+  organizationId String
+  timesheetId  String
+  timesheet    Timesheet @relation(fields: [timesheetId], references: [id], onDelete: Cascade)
+  fileName     String
+  storedName   String
+  mimeType     String
+  size         Int
+  uploadedById String
+  createdAt    DateTime  @default(now())
+}
+
+model Invoice {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client    @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  invoiceNumber  String
+  issueDate      DateTime
+  dueDate        DateTime
+  periodStart    DateTime?
+  periodEnd      DateTime?
+  subtotal       Int       @default(0)
+  total          Int       @default(0)
+  amountPaid     Int       @default(0)
+  status         String    @default("DRAFT") // DRAFT | SENT | PARTIAL | PAID | VOID
+  onHold         Boolean   @default(false) // disputed: stops reminders
+  notes          String?
+  sentAt         DateTime?
+  lastReminderAt DateTime?
+  remindersSent  String    @default("") // comma list of offsets already sent
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  lines          InvoiceLine[]
+  payments       Payment[]
+  timesheets     Timesheet[]
+
+  @@unique([organizationId, invoiceNumber])
+  @@index([organizationId, status])
+}
+
+model InvoiceLine {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  invoice     Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  description String
+  minutes     Int     @default(0)
+  rate        Int     @default(0) // cents per hour
+  amount      Int     // cents
+  timesheetId String?
+}
+
+model Payment {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoiceId      String
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client   @relation(fields: [clientId], references: [id], onDelete: Restrict)
+  amount         Int
+  paidOn         DateTime
+  method         String   @default("ACH") // ACH | WIRE | CHECK | CARD | OTHER
+  reference      String?
+  notes          String?
+  recordedById   String
+  createdAt      DateTime @default(now())
+}
+
+model PayrollRun {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  periodStart    DateTime
+  periodEnd      DateTime
+  payDate        DateTime
+  status         String   @default("DRAFT") // DRAFT | APPROVED | PAID
+  totalGross     Int      @default(0)
+  notes          String?
+  createdById    String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  payslips       Payslip[]
+}
+
+model Payslip {
+  id             String     @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  payrollRunId   String
+  payrollRun     PayrollRun @relation(fields: [payrollRunId], references: [id], onDelete: Cascade)
+  employeeId     String
+  employee       Employee   @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  regularMinutes Int        @default(0)
+  overtimeMinutes Int       @default(0)
+  regularPay     Int        @default(0)
+  overtimePay    Int        @default(0)
+  adjustments    Int        @default(0)
+  grossPay       Int        @default(0)
+  status         String     @default("DRAFT") // DRAFT | PAID
+  paidAt         DateTime?
+  createdAt      DateTime   @default(now())
+
+  timesheets     Timesheet[]
+
+  @@unique([payrollRunId, employeeId])
+}
+
+model Notification {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type           String
+  title          String
+  body           String
+  link           String?
+  readAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([userId, readAt])
+}
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  to             String
+  cc             String?
+  subject        String
+  html           String
+  type           String
+  status         String   @default("SENT") // SENT | LOGGED | FAILED
+  error          String?
+  relatedId      String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String?
+  action         String
+  entity         String
+  entityId       String?
+  details        String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+}

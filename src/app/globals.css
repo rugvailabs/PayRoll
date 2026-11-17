@@ -1,26 +1,59 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif;
+  --color-brand-50: #eef4ff;
+  --color-brand-100: #dbe7fe;
+  --color-brand-200: #bfd3fe;
+  --color-brand-500: #3b6ef5;
+  --color-brand-600: #2557e8;
+  --color-brand-700: #1c45c4;
+  --color-ink-900: #0f1b2d;
+  --color-ink-800: #16263d;
+  --color-ink-700: #23364f;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  background: #f5f7fb;
+  color: #0f172a;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+}
+
+/* Shared form control look */
+.control {
+  @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 transition;
+  @apply focus:border-brand-500 focus:ring-3 focus:ring-brand-100 focus:outline-none;
+  @apply disabled:bg-slate-100 disabled:text-slate-500;
+}
+.control[aria-invalid="true"] {
+  @apply border-red-400 focus:ring-red-100;
+}
+
+.table-wrap {
+  @apply overflow-x-auto;
+}
+.data-table {
+  @apply w-full text-sm;
+}
+.data-table thead th {
+  @apply bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase whitespace-nowrap border-b border-slate-200;
+}
+.data-table tbody td {
+  @apply px-4 py-3 border-b border-slate-100 text-slate-700 whitespace-nowrap;
+}
+.data-table tbody tr:hover td {
+  @apply bg-slate-50/70;
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #fff;
+  }
 }
