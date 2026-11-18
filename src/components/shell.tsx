@@ -90,6 +90,9 @@ export function AppShell({
   quickLinks,
   unread,
   children,
+  profileHref = "/profile",
+  notificationsHref = "/notifications",
+  portalLabel,
 }: {
   orgName: string;
   userName: string;
@@ -99,10 +102,19 @@ export function AppShell({
   quickLinks: QuickLink[][];
   unread: number;
   children: ReactNode;
+  profileHref?: string;
+  notificationsHref?: string;
+  portalLabel?: string;
 }) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
   useEffect(() => setMobileOpen(false), [pathname]);
+
+  // Highlight the most specific nav item that matches the current path.
+  const activeHref = nav
+    .flatMap((g) => g.items.map((i) => i.href))
+    .filter((h) => pathname === h || pathname.startsWith(h + "/"))
+    .sort((a, b) => b.length - a.length)[0];
 
   const sidebar = (
     <nav className="flex h-full flex-col bg-ink-900 text-slate-300">
@@ -111,7 +123,7 @@ export function AppShell({
         <span className="text-base font-semibold">{APP_NAME}</span>
       </div>
       <div className="mx-3 mb-3 rounded-lg bg-white/5 px-3 py-2">
-        <p className="text-[11px] uppercase tracking-wide text-slate-500">Organization</p>
+        <p className="text-[11px] uppercase tracking-wide text-slate-500">{portalLabel ?? "Organization"}</p>
         <p className="truncate text-sm font-medium text-white">{orgName}</p>
       </div>
       <div className="flex-1 overflow-y-auto px-3 pb-6">
@@ -120,7 +132,7 @@ export function AppShell({
             {g.title && <p className="mb-1 px-3 text-[11px] font-semibold uppercase tracking-wider text-slate-500">{g.title}</p>}
             {g.items.map((item) => {
               const Icon = ICONS[item.icon];
-              const active = pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/")) || pathname === item.href;
+              const active = item.href === activeHref;
               return (
                 <Link
                   key={item.href}
@@ -189,7 +201,7 @@ export function AppShell({
             </Dropdown>
           )}
 
-          <Link href="/notifications" className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100" aria-label="Notifications">
+          <Link href={notificationsHref} className="relative rounded-lg p-2 text-slate-600 hover:bg-slate-100" aria-label="Notifications">
             <Bell size={20} />
             {unread > 0 && (
               <span className="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold text-white">
@@ -216,7 +228,7 @@ export function AppShell({
               <p className="text-sm font-medium text-slate-800">{userName}</p>
               <p className="text-xs text-slate-500">{userEmail}</p>
             </div>
-            <Link href="/profile" className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
+            <Link href={profileHref} className="mt-1 flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">
               <UserCircle size={16} /> My profile
             </Link>
             <Link href="/change-password" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-slate-700 hover:bg-slate-50">

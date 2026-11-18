@@ -58,7 +58,10 @@ model User {
   email          String
   name           String
   passwordHash   String?
-  role           String    @default("EMPLOYEE") // ADMIN | MANAGER | ACCOUNTANT | EMPLOYEE
+  role           String    @default("EMPLOYEE") // ADMIN | MANAGER | ACCOUNTANT | EMPLOYEE | CLIENT
+  clientId       String?   // set for CLIENT portal users
+  client         Client?   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  jobTitle       String?   // free text, used for client contacts
   isActive       Boolean   @default(true)
   mustChangePassword Boolean @default(true)
   inviteToken    String?   @unique
@@ -183,6 +186,7 @@ model Client {
   paymentTermsDays    Int      @default(30)
   invoiceFrequency    String   @default("MONTHLY") // WEEKLY | BIWEEKLY | SEMIMONTHLY | MONTHLY
   remindersEnabled    Boolean  @default(true)
+  portalApproval      Boolean  @default(true) // client users may approve timesheets online
   status         String   @default("ACTIVE") // ACTIVE | INACTIVE
   notes          String?
   createdAt      DateTime @default(now())
@@ -191,6 +195,7 @@ model Client {
   placements     Placement[]
   invoices       Invoice[]
   payments       Payment[]
+  users          User[]
 
   @@unique([organizationId, clientCode])
   @@index([organizationId, status])
@@ -244,6 +249,7 @@ model Timesheet {
   submittedAt    DateTime?
   reviewedAt     DateTime?
   reviewedById   String?
+  reviewedByName String?   // who approved/rejected (staff or client contact)
   invoiceId      String?
   invoice        Invoice?  @relation(fields: [invoiceId], references: [id], onDelete: SetNull)
   payslipId      String?

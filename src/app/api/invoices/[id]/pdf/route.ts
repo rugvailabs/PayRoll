@@ -9,8 +9,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
   const user = await db.user.findFirst({ where: { id: session.uid, organizationId: session.oid, isActive: true } });
-  if (!user || !can(user.role as Role, "invoices.manage")) return new NextResponse("Forbidden", { status: 403 });
+  if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const { id } = await params;
+  // Staff with invoice access, or a client user downloading their own company's sent invoice.
+  if (!can(user.role as Role, "invoices.manage")) {
+    const own = user.role === "CLIENT" && user.clientId
+      ? await db.invoice.findFirst({ where: { id, organizationId: session.oid, clientId: user.clientId, status: { in: ["SENT", "PARTIAL", "PAID"] } } })
+      : null;
+    if (!own) return new NextResponse("Forbidden", { status: 403 });
+  }
   const loaded = await loadInvoiceForPdf(session.oid, id);
   if (!loaded) return new NextResponse("Not found", { status: 404 });
   return new NextResponse(new Uint8Array(loaded.bytes), {

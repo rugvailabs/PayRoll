@@ -16,8 +16,22 @@ npm run db:seed      # optional demo data
 npm run dev          # http://localhost:3000
 ```
 
-Demo logins (after seeding): `admin@demo.test / Admin@123`, `ratna@demo.test / Employee@123`
-(company code `demo`). Or click **Create an account** to set up a new organization.
+The login page has three tabs: **Admin**, **Employee** and **Client**. Demo logins (after seeding, company code `demo`):
+
+| Tab | Email | Password | Lands on |
+|---|---|---|---|
+| Admin | `admin@demo.test` | `Admin@123` | `/dashboard` |
+| Employee | `ratna@demo.test` | `Employee@123` | `/my` (employee dashboard) |
+| Client | `mark@axiom.test` | `Client@123` | `/client` (client portal) |
+
+Or click **Create an account** to set up a new organization.
+
+## Client portal
+
+Create logins for a client's contacts under **Clients → (client) → Portal logins**. Client users see only their
+own company: consultants (no pay rates), timesheets with attached sheets, invoices (PDF download), balance by age
+and payment history. If **Client portal approval** is enabled on the client, they approve or reject submitted
+timesheets online and get an email + in-app alert for each new one.
 
 ## Main flow
 

@@ -36,3 +36,17 @@ export async function audit(
 ) {
   await db.auditLog.create({ data: { organizationId, userId, action, entity, entityId, details } });
 }
+
+/** In-app notification for all active portal users of a client company. Returns those users. */
+export async function notifyClientUsers(
+  organizationId: string,
+  clientId: string,
+  n: { type: string; title: string; body: string; link?: string },
+) {
+  const users = await db.user.findMany({
+    where: { organizationId, clientId, role: "CLIENT", isActive: true },
+    select: { id: true, email: true, name: true },
+  });
+  await notifyUsers(organizationId, users.map((u) => u.id), n);
+  return users;
+}

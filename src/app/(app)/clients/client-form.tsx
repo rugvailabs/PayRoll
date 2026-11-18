@@ -55,6 +55,12 @@ export function ClientForm({ defaults = {} }: { defaults?: Record<string, string
         </FormSection>
 
         <FormSection title="Timesheet approver" description="Person at the client who signs off on hours.">
+          <Field label="Client portal approval" className="sm:col-span-2 xl:col-span-3">
+            <label className="flex items-center gap-2 text-sm">
+              <input type="checkbox" name="portalApproval" defaultChecked={d("portalApproval") !== "false"} className="h-4 w-4 accent-brand-600" />
+              Client contacts can approve or reject timesheets online in the client portal
+            </label>
+          </Field>
           <TextField label="Approver name" name="approverName" defaultValue={d("approverName")} />
           <TextField label="Approver email" name="approverEmail" type="email" defaultValue={d("approverEmail")} error={fe.approverEmail} />
         </FormSection>

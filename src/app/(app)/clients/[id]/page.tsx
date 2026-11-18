@@ -8,6 +8,7 @@ import { can, requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, frequencyLabel, fullName } from "@/lib/format";
 import { balanceOf, daysOverdue, displayStatus } from "@/lib/finance";
+import { PortalUsers } from "./portal-users";
 
 export const metadata: Metadata = { title: "Client" };
 
@@ -27,6 +28,7 @@ export default async function ClientPage({
       placements: { include: { employee: { include: { jobTitle: true } } }, orderBy: { startDate: "desc" } },
       invoices: { orderBy: { issueDate: "desc" } },
       payments: { orderBy: { paidOn: "desc" }, include: { invoice: { select: { invoiceNumber: true, id: true } } } },
+      users: { where: { role: "CLIENT" }, orderBy: { name: "asc" } },
     },
   });
   if (!c) notFound();
@@ -76,6 +78,7 @@ export default async function ClientPage({
           { key: "employees", label: "Employees", href: base, count: activePlacements.length },
           { key: "invoices", label: "Invoices", href: `${base}?tab=invoices`, count: c.invoices.length },
           { key: "payments", label: "Payments", href: `${base}?tab=payments`, count: c.payments.length },
+          { key: "portal", label: "Portal logins", href: `${base}?tab=portal`, count: c.users.length },
           { key: "details", label: "Details", href: `${base}?tab=details` },
         ]}
       />
@@ -179,6 +182,22 @@ export default async function ClientPage({
         </Card>
       )}
 
+      {tab === "portal" && (
+        can(user.role, "clients.manage") ? (
+          <PortalUsers
+            clientId={c.id}
+            approverName={c.approverName ?? c.billingContactName ?? ""}
+            approverEmail={c.approverEmail ?? c.billingEmail}
+            users={c.users.map((u) => ({
+              id: u.id, name: u.name, email: u.email, jobTitle: u.jobTitle, isActive: u.isActive,
+              lastLoginAt: u.lastLoginAt?.toISOString() ?? null, invited: !!u.inviteToken,
+            }))}
+          />
+        ) : (
+          <Card><EmptyState title="You don't have permission to manage client logins" /></Card>
+        )
+      )}
+
       {tab === "details" && (
         <div className="grid gap-6 lg:grid-cols-2">
           <Card>
@@ -202,6 +221,7 @@ export default async function ClientPage({
                 { label: "CC", value: c.billingCcEmails },
                 { label: "Payment terms", value: `Net ${c.paymentTermsDays}` },
                 { label: "Reminders", value: c.remindersEnabled ? "Enabled" : "Disabled" },
+                { label: "Portal approval", value: c.portalApproval ? "Client approves timesheets online" : "Approved by your team" },
                 { label: "Timesheet approver", value: [c.approverName, c.approverEmail].filter(Boolean).join(" · ") },
               ]} />
             </CardBody>

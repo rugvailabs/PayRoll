@@ -47,6 +47,12 @@ async function main() {
     }),
   ]);
 
+  await db.user.create({
+    data: {
+      organizationId: org.id, clientId: axiom.id, role: "CLIENT", email: "mark@axiom.test", name: "Mark Lee",
+      jobTitle: "Engineering Manager", passwordHash: await bcrypt.hash("Client@123", 10), mustChangePassword: false,
+    },
+  });
   const jt = (n: string) => org.jobTitles.find((j) => j.name === n)!.id;
   const eng = org.departments.find((d) => d.name === "Engineering")!.id;
   const people = [
@@ -136,6 +142,7 @@ async function main() {
   console.log("Seeded demo organization.");
   console.log("  Admin:    admin@demo.test / Admin@123");
   console.log("  Employee: ratna@demo.test / Employee@123");
+  console.log("  Client:   mark@axiom.test / Client@123");
 }
 
 main()

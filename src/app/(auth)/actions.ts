@@ -4,7 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { hashPassword, validatePassword, verifyPassword } from "@/lib/accounts";
-import { SESSION_COOKIE, sessionCookieOptions, signSession, type Role } from "@/lib/session";
+import { homeFor, SESSION_COOKIE, sessionCookieOptions, signSession, type Role } from "@/lib/session";
 import { getSession } from "@/lib/auth";
 import { audit } from "@/lib/notify";
 import { str } from "@/lib/format";
@@ -33,9 +33,10 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
   const company = str(formData.get("company"))?.toLowerCase();
   if (!email || !password) return { error: "Enter your email and password." };
 
+  const portal = String(formData.get("portal") ?? "admin"); // admin | employee | client
   const candidates = await db.user.findMany({
     where: { email, isActive: true, ...(company ? { organization: { slug: company } } : {}) },
-    include: { organization: true },
+    include: { organization: true, employee: { select: { id: true } }, client: { select: { status: true } } },
   });
   const matches = [];
   for (const u of candidates) {
@@ -46,10 +47,18 @@ export async function loginAction(_: FormState, formData: FormData): Promise<For
     return { error: "This email belongs to more than one company. Enter your company code.", fieldErrors: { company: "Required" } };
   }
   const user = matches[0];
+  // Each tab only signs in its own kind of account.
+  const isClient = user.role === "CLIENT";
+  if (portal === "client" && !isClient) return { error: "This is not a client account. Use the Admin or Employee tab." };
+  if (portal !== "client" && isClient) return { error: "This is a client account. Use the Client tab." };
+  if (portal === "employee" && !user.employee) return { error: "No employee profile is linked to this account. Use the Admin tab." };
+  if (portal === "admin" && user.role === "EMPLOYEE") return { error: "This is an employee account. Use the Employee tab." };
+  if (isClient && user.client?.status !== "ACTIVE") return { error: "Portal access for your company is currently disabled." };
   await startSession(user);
-  await audit(user.organizationId, user.id, "LOGIN", "User", user.id);
+  await audit(user.organizationId, user.id, "LOGIN", "User", user.id, portal);
   if (user.mustChangePassword) redirect("/change-password");
-  redirect(safeNext(str(formData.get("next"))));
+  const next = str(formData.get("next"));
+  redirect(next && safeNext(next) !== "/dashboard" ? safeNext(next) : portal === "employee" ? "/my" : homeFor(user.role as Role));
 }
 
 function slugify(s: string) {
@@ -116,7 +125,7 @@ export async function setPasswordAction(_: FormState, formData: FormData): Promi
     data: { passwordHash: await hashPassword(password), inviteToken: null, inviteExpires: null, mustChangePassword: false },
   });
   await startSession(user);
-  redirect("/dashboard");
+  redirect(homeFor(user.role as Role));
 }
 
 export async function changePasswordAction(_: FormState, formData: FormData): Promise<FormState> {
@@ -133,7 +142,7 @@ export async function changePasswordAction(_: FormState, formData: FormData): Pr
   if (password !== confirm) return { fieldErrors: { confirm: "Passwords do not match" } };
   if (password === current) return { fieldErrors: { password: "Choose a password different from the current one" } };
   await db.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(password), mustChangePassword: false } });
-  redirect("/dashboard");
+  redirect(homeFor(user.role as Role));
 }
 
 export async function logoutAction() {

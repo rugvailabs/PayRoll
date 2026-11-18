@@ -1,7 +1,7 @@
 import "server-only";
 import { db } from "./db";
 import { emailLayout, esc, sendEmail } from "./email";
-import { notifyRoles, notifyUsers } from "./notify";
+import { notifyClientUsers, notifyRoles, notifyUsers } from "./notify";
 import { addDays, dateToInput, daysBetween, formatDate, formatMoney, periodFor, todayUtc } from "./format";
 import { balanceOf } from "./finance";
 
@@ -64,6 +64,12 @@ export async function runPaymentReminders(organizationId: string) {
          <p>Outstanding balance: <b>${formatMoney(balance)}</b></p>
          <p>If you have already sent payment, please disregard this message or reply with the payment reference. Thank you.</p>`,
       ),
+    });
+    await notifyClientUsers(organizationId, inv.clientId, {
+      type: offset > 0 ? "PAYMENT_OVERDUE" : "PAYMENT_REMINDER",
+      title: `${title} · ${inv.invoiceNumber}`,
+      body: `Balance ${formatMoney(balance)} · due ${formatDate(inv.dueDate)}`,
+      link: `/client/invoices/${inv.id}`,
     });
     await db.invoice.update({
       where: { id: inv.id },

@@ -11,14 +11,15 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
   const { id } = await params;
   const att = await db.attachment.findFirst({
     where: { id, organizationId: session.oid },
-    include: { timesheet: { include: { employee: { select: { userId: true } } } } },
+    include: { timesheet: { include: { employee: { select: { userId: true } }, placement: { select: { clientId: true } } } } },
   });
   if (!att) return new NextResponse("Not found", { status: 404 });
   const user = await db.user.findFirst({ where: { id: session.uid, organizationId: session.oid, isActive: true } });
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const isOwner = att.timesheet.employee.userId === user.id;
   const r = user.role as Role;
-  if (!isOwner && !can(r, "timesheets.approve") && !can(r, "invoices.manage") && !can(r, "payroll.manage"))
+  const isClientViewer = r === "CLIENT" && !!user.clientId && att.timesheet.placement.clientId === user.clientId && att.timesheet.status !== "DRAFT";
+  if (!isOwner && !isClientViewer && !can(r, "timesheets.approve") && !can(r, "invoices.manage") && !can(r, "payroll.manage"))
     return new NextResponse("Forbidden", { status: 403 });
 
   const data = await readUpload(att.organizationId, att.storedName);

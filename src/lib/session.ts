@@ -12,7 +12,7 @@ export type SessionPayload = {
   email: string;
 };
 
-export type Role = "ADMIN" | "MANAGER" | "ACCOUNTANT" | "EMPLOYEE";
+export type Role = "ADMIN" | "MANAGER" | "ACCOUNTANT" | "EMPLOYEE" | "CLIENT";
 
 function secret() {
   const s = process.env.AUTH_SECRET;
@@ -45,3 +45,8 @@ export const sessionCookieOptions = {
   path: "/",
   maxAge: MAX_AGE_SECONDS,
 };
+
+/** Where each kind of user lands after signing in. */
+export function homeFor(role: Role) {
+  return role === "CLIENT" ? "/client" : role === "EMPLOYEE" ? "/my" : "/dashboard";
+}

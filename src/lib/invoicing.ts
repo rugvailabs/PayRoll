@@ -4,6 +4,7 @@ import { emailLayout, esc, sendEmail } from "./email";
 import { invoicePdf } from "./pdf";
 import { formatDate, formatMinutes, formatMoney, fullName } from "./format";
 import { balanceOf } from "./finance";
+import { notifyClientUsers } from "./notify";
 
 /** Overtime rate falls back to 1.5x the regular rate when not set. */
 export const otRate = (regular: number, ot: number) => (ot > 0 ? ot : Math.round(regular * 1.5));
@@ -103,5 +104,11 @@ export async function emailInvoice(organizationId: string, id: string, kind: "IN
   if (inv.status === "DRAFT") {
     await db.invoice.update({ where: { id }, data: { status: "SENT", sentAt: new Date() } });
   }
+  await notifyClientUsers(organizationId, inv.clientId, {
+    type: "INVOICE_SENT",
+    title: `Invoice ${inv.invoiceNumber}`,
+    body: `${formatMoney(balanceOf(inv))} due ${formatDate(inv.dueDate)}`,
+    link: `/client/invoices/${inv.id}`,
+  });
   return result;
 }

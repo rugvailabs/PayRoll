@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "./db";
-import { SESSION_COOKIE, verifySession, type Role } from "./session";
+import { homeFor, SESSION_COOKIE, verifySession, type Role } from "./session";
 
 export type Permission =
   | "employees.manage"
@@ -33,6 +33,7 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "payroll.manage", "reports.view",
   ],
   EMPLOYEE: [],
+  CLIENT: [],
 };
 
 export function can(role: Role, perm: Permission) {
@@ -50,7 +51,7 @@ export const requireUser = cache(async () => {
   if (!session) redirect("/login");
   const user = await db.user.findFirst({
     where: { id: session.uid, organizationId: session.oid, isActive: true },
-    include: { organization: true, employee: true },
+    include: { organization: true, employee: true, client: true },
   });
   if (!user) redirect("/login");
   return { ...user, role: user.role as Role };
@@ -58,6 +59,16 @@ export const requireUser = cache(async () => {
 
 export async function requirePermission(perm: Permission) {
   const user = await requireUser();
+  if (user.role === "CLIENT") redirect("/client");
   if (!can(user.role, perm)) redirect("/dashboard?denied=1");
   return user;
 }
+
+/** Signed-in client-portal user with their client company. */
+export async function requireClientUser() {
+  const user = await requireUser();
+  if (user.role !== "CLIENT" || !user.client || user.client.status !== "ACTIVE") redirect(user.role === "CLIENT" ? "/api/logout?reason=inactive" : homeFor(user.role));
+  return { ...user, client: user.client };
+}
+
+export { homeFor } from "./session";

@@ -38,8 +38,10 @@ export async function sendInvite(userId: string) {
     org.name,
     "Your account is ready",
     `<p>Hello ${esc(user.name)},</p>
-     <p>An account has been created for you on the <b>${esc(org.name)}</b> workforce portal. You can submit timesheets and view your pay statements there.</p>
-     <p><b>Login email:</b> ${esc(user.email)}<br/><b>Company code:</b> ${esc(org.slug)}</p>
+     <p>${user.role === "CLIENT"
+       ? `An account has been created for you on the <b>${esc(org.name)}</b> client portal. There you can review your consultants&#39; timesheets, download invoices and see your payment status.`
+       : `An account has been created for you on the <b>${esc(org.name)}</b> workforce portal. You can submit timesheets and view your pay statements there.`}</p>
+     <p><b>Login email:</b> ${esc(user.email)}<br/><b>Company code:</b> ${esc(org.slug)}<br/><b>Sign in on the:</b> ${user.role === "CLIENT" ? "Client" : user.role === "EMPLOYEE" ? "Employee" : "Admin"} tab</p>
      <p>Click the button below to set your password. This link expires in ${INVITE_DAYS} days.</p>`,
     { label: "Set your password", url },
   );
@@ -78,7 +80,7 @@ export async function resetToTempPassword(userId: string, email: boolean) {
         `<p>Hello ${esc(user.name)},</p>
          <p><b>Login email:</b> ${esc(user.email)}<br/><b>Company code:</b> ${esc(org.slug)}<br/><b>Temporary password:</b> <code>${esc(password)}</code></p>
          <p>You will be asked to change this password when you first sign in.</p>`,
-        { label: "Sign in", url: `${process.env.APP_URL}/login` },
+        { label: "Sign in", url: `${process.env.APP_URL}/login?portal=${user.role === "CLIENT" ? "client" : user.role === "EMPLOYEE" ? "employee" : "admin"}` },
       ),
     });
   }

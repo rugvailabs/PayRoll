@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Alert, Badge, Card, CardHeader, EmptyState, LinkButton, PageHeader, StatCard } from "@/components/ui";
 import { can, requireUser } from "@/lib/auth";
+import type { Role } from "@/lib/session";
 import { db } from "@/lib/db";
 import { formatDate, formatDateTime, formatMinutes, formatMoney, fullName, todayUtc } from "@/lib/format";
 import { balanceOf, daysOverdue } from "@/lib/finance";
@@ -11,8 +13,9 @@ export const metadata: Metadata = { title: "Dashboard" };
 export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ welcome?: string; denied?: string }> }) {
   const user = await requireUser();
   const { welcome, denied } = await searchParams;
+  if (user.role === "EMPLOYEE") redirect("/my");
   const oid = user.organizationId;
-  const isStaff = user.role !== "EMPLOYEE";
+  const isStaff = true;
 
   return (
     <>
@@ -32,7 +35,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   );
 }
 
-async function StaffDashboard({ oid, role }: { oid: string; role: "ADMIN" | "MANAGER" | "ACCOUNTANT" | "EMPLOYEE" }) {
+async function StaffDashboard({ oid, role }: { oid: string; role: Role }) {
   const today = todayUtc();
   const [activeEmployees, activeClients, pendingTs, approvedUninvoiced, openInvoices, recentTs, recentActivity] = await Promise.all([
     db.employee.count({ where: { organizationId: oid, status: "ACTIVE" } }),

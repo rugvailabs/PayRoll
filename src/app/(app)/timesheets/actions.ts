@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { can, requireUser } from "@/lib/auth";
-import { audit, notifyRoles, notifyUsers } from "@/lib/notify";
+import { audit, notifyClientUsers, notifyRoles, notifyUsers } from "@/lib/notify";
 import { emailLayout, esc, sendEmail } from "@/lib/email";
 import { deleteUpload, saveUpload, validateUpload } from "@/lib/files";
 import { dateToInput, eachDay, formatDate, formatMinutes, fullName, parseDate, parseHours, periodFor, str } from "@/lib/format";
@@ -103,7 +103,7 @@ export async function saveTimesheetAction(_: TsState, fd: FormData): Promise<TsS
         employeeNote: note,
         status: newStatus,
         ...(intent !== "save" ? { submittedAt: now } : {}),
-        ...(intent === "approve" ? { reviewedAt: now, reviewedById: user.id, reviewNote: null } : {}),
+        ...(intent === "approve" ? { reviewedAt: now, reviewedById: user.id, reviewedByName: user.name, reviewNote: null } : {}),
       },
     }),
   ]);
@@ -117,6 +117,31 @@ export async function saveTimesheetAction(_: TsState, fd: FormData): Promise<TsS
       body: `${ts.placement.client.name} · ${period} · ${formatMinutes(totalMinutes)} hrs`,
       link: `/timesheets/${id}`,
     });
+    if (ts.placement.client.portalApproval) {
+      const approvers = await notifyClientUsers(user.organizationId, ts.placement.clientId, {
+        type: "TIMESHEET_SUBMITTED",
+        title: `Timesheet awaiting your approval: ${who}`,
+        body: `${period} · ${formatMinutes(totalMinutes)} hrs`,
+        link: `/client/timesheets/${id}`,
+      });
+      for (const a of approvers) {
+        await sendEmail({
+          organizationId: user.organizationId,
+          to: a.email,
+          subject: `Timesheet for approval: ${who} (${period})`,
+          type: "TIMESHEET_FOR_APPROVAL",
+          relatedId: id,
+          html: emailLayout(
+            user.organization.name,
+            "Timesheet awaiting your approval",
+            `<p>Hello ${esc(a.name)},</p>
+             <p><b>${esc(who)}</b> submitted a timesheet for <b>${esc(period)}</b> totaling <b>${formatMinutes(totalMinutes)} hours</b>.</p>
+             <p>Please review and approve it in the client portal.</p>`,
+            { label: "Review timesheet", url: `${process.env.APP_URL}/client/timesheets/${id}` },
+          ),
+        });
+      }
+    }
   }
   await audit(user.organizationId, user.id, intent.toUpperCase(), "Timesheet", id);
   revalidatePath("/timesheets");
@@ -179,7 +204,7 @@ export async function reviewTimesheetAction(_: TsState, fd: FormData): Promise<T
   if (decision === "reopen") {
     if (ts.status !== "APPROVED" && ts.status !== "SUBMITTED") return { error: "Only submitted or approved timesheets can be reopened." };
     if (ts.invoiceId || ts.payslipId) return { error: "This timesheet is already on an invoice or payroll. Remove it there first." };
-    await db.timesheet.update({ where: { id }, data: { status: "DRAFT", reviewedAt: null, reviewedById: null } });
+    await db.timesheet.update({ where: { id }, data: { status: "DRAFT", reviewedAt: null, reviewedById: null, reviewedByName: null } });
     await audit(user.organizationId, user.id, "REOPEN", "Timesheet", id);
     revalidatePath(`/timesheets/${id}`);
     return { ok: "Timesheet moved back to draft." };
@@ -190,7 +215,7 @@ export async function reviewTimesheetAction(_: TsState, fd: FormData): Promise<T
   const approved = decision === "approve";
   await db.timesheet.update({
     where: { id },
-    data: { status: approved ? "APPROVED" : "REJECTED", reviewNote: note, reviewedAt: new Date(), reviewedById: user.id },
+    data: { status: approved ? "APPROVED" : "REJECTED", reviewNote: note, reviewedAt: new Date(), reviewedById: user.id, reviewedByName: user.name },
   });
   await audit(user.organizationId, user.id, approved ? "APPROVE" : "REJECT", "Timesheet", id, note ?? undefined);
 
@@ -239,7 +264,7 @@ export async function bulkApproveAction(fd: FormData) {
   const now = new Date();
   await db.timesheet.updateMany({
     where: { id: { in: sheets.map((s) => s.id) } },
-    data: { status: "APPROVED", reviewedAt: now, reviewedById: user.id },
+    data: { status: "APPROVED", reviewedAt: now, reviewedById: user.id, reviewedByName: user.name },
   });
   for (const s of sheets) {
     if (s.employee.userId)

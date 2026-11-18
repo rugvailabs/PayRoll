@@ -52,7 +52,7 @@ export function TimesheetSummary({ ts }: { ts: FullTimesheet }) {
             { label: "Status", value: <Badge status={ts.status} /> },
             { label: "Total hours", value: <span className="font-semibold">{formatMinutes(ts.totalMinutes)}</span> },
             { label: "Submitted", value: formatDateTime(ts.submittedAt) },
-            { label: "Reviewed", value: formatDateTime(ts.reviewedAt) },
+            { label: "Reviewed", value: ts.reviewedAt ? `${formatDateTime(ts.reviewedAt)}${ts.reviewedByName ? ` by ${ts.reviewedByName}` : ""}` : null },
             { label: "Project", value: ts.placement.projectName },
           ]}
         />

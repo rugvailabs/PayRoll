@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth";
-import { audit, notifyRoles } from "@/lib/notify";
+import { audit, notifyClientUsers, notifyRoles } from "@/lib/notify";
 import { emailLayout, esc, sendEmail } from "@/lib/email";
 import { addDays, formatDate, formatMoney, parseDate, parseMoney, str } from "@/lib/format";
 import { emailInvoice, linesFromTimesheets } from "@/lib/invoicing";
@@ -176,6 +176,12 @@ export async function recordPaymentAction(_: InvState, fd: FormData): Promise<In
     title: `Payment received: ${inv.client.name}`,
     body: `${formatMoney(amount)} on ${inv.invoiceNumber} · ${status === "PAID" ? "paid in full" : `balance ${formatMoney(inv.total - newPaid)}`}`,
     link: `/invoices/${id}`,
+  });
+  await notifyClientUsers(oid, inv.clientId, {
+    type: "PAYMENT_RECEIVED",
+    title: `Payment received: ${inv.invoiceNumber}`,
+    body: `${formatMoney(amount)} received${status === "PAID" ? " · paid in full" : ` · balance ${formatMoney(inv.total - newPaid)}`}`,
+    link: `/client/invoices/${id}`,
   });
   if (fd.get("sendReceipt") === "on") {
     await sendEmail({

@@ -3,11 +3,12 @@ import { AppShell, type NavGroup, type QuickLink } from "@/components/shell";
 import { can, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 
-const ROLE_LABEL = { ADMIN: "Administrator", MANAGER: "Manager", ACCOUNTANT: "Accountant", EMPLOYEE: "Employee" };
+const ROLE_LABEL = { ADMIN: "Administrator", MANAGER: "Manager", ACCOUNTANT: "Accountant", EMPLOYEE: "Employee", CLIENT: "Client" };
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   if (user.mustChangePassword) redirect("/change-password");
+  if (user.role === "CLIENT") redirect("/client");
   const oid = user.organizationId;
 
   const [unread, pendingTimesheets] = await Promise.all([
@@ -17,13 +18,15 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       : Promise.resolve(0),
   ]);
 
-  const nav: NavGroup[] = [{ items: [{ href: "/dashboard", label: "Dashboard", icon: "dashboard" }] }];
+  const nav: NavGroup[] =
+    user.role === "EMPLOYEE" ? [] : [{ items: [{ href: "/dashboard", label: "Dashboard", icon: "dashboard" }] }];
   const quick: QuickLink[][] = [];
 
   if (user.employee) {
     nav.push({
       title: "My work",
       items: [
+        ...(user.role === "EMPLOYEE" ? [{ href: "/my", label: "My Dashboard", icon: "dashboard" as const }] : []),
         { href: "/my/timesheets", label: "My Timesheets", icon: "timesheets" },
         { href: "/my/payslips", label: "My Pay Statements", icon: "payslips" },
       ],
