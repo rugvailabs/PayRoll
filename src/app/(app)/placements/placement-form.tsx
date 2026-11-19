@@ -67,7 +67,7 @@ export function PlacementForm({
           <TextField label="Overtime pay rate" name="otPayRate" inputMode="decimal" placeholder="0.00" defaultValue={d("otPayRate")} error={fe.otPayRate}
             hint="Leave 0 to pay overtime at 1.5× pay rate" />
         </FormSection>
-        <div className="flex justify-end gap-2 rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-4">
+        <div className="sticky bottom-0 z-10 flex justify-end gap-2 rounded-b-xl border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
           <LinkButton href={returnTo ?? "/placements"} variant="secondary">Cancel</LinkButton>
           <SubmitButton>{d("id") ? "Save placement" : "Create placement"}</SubmitButton>
         </div>

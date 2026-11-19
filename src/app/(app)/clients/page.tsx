@@ -39,7 +39,7 @@ export default async function ClientsPage({ searchParams }: { searchParams: Prom
             <option value="INACTIVE">Inactive</option>
             <option value="ALL">All</option>
           </select>
-          <button className="rounded-lg bg-slate-800 px-4 text-sm font-medium text-white hover:bg-slate-900">Filter</button>
+          <button className="inline-flex h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition hover:bg-slate-50 hover:text-slate-900">Filter</button>
         </form>
         {clients.length === 0 ? (
           <EmptyState

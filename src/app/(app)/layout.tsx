@@ -75,6 +75,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       nav={nav}
       quickLinks={quick}
       unread={unread}
+      searchHref={user.role === "EMPLOYEE" ? undefined : "/search"}
     >
       {children}
     </AppShell>

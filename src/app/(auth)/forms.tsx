@@ -24,7 +24,7 @@ export function LoginForm({ next, initialPortal, inactive }: { next?: string; in
   const current = PORTALS.find((p) => p.key === portal)!;
   return (
     <>
-      <div className="mb-6 grid grid-cols-3 gap-1 rounded-xl bg-slate-100 p-1" role="tablist">
+      <div className="mb-8 grid grid-cols-3 gap-1 rounded-xl border border-slate-200 bg-slate-50 p-1" role="tablist">
         {PORTALS.map((p) => (
           <button
             key={p.key}
@@ -33,16 +33,16 @@ export function LoginForm({ next, initialPortal, inactive }: { next?: string; in
             aria-selected={portal === p.key}
             onClick={() => setPortal(p.key)}
             className={
-              "rounded-lg py-2 text-sm font-medium transition " +
-              (portal === p.key ? "bg-white text-brand-700 shadow-sm" : "text-slate-500 hover:text-slate-800")
+              "rounded-lg py-2 text-[13px] font-semibold transition " +
+              (portal === p.key ? "bg-white text-slate-900 shadow-[0_1px_3px_rgba(16,24,40,0.12)] ring-1 ring-slate-200" : "text-slate-500 hover:text-slate-800")
             }
           >
             {p.label}
           </button>
         ))}
       </div>
-      <h1 className="text-2xl font-semibold text-slate-900">{current.title}</h1>
-      <p className="mb-6 mt-1 text-sm text-slate-500">{current.hint}</p>
+      <h1 className="text-[26px] font-semibold tracking-tight text-slate-900">{current.title}</h1>
+      <p className="mb-7 mt-1.5 text-sm text-slate-500">{current.hint}</p>
       <form action={action} className="space-y-4">
         {inactive && !state && <Alert tone="warning">Your access is disabled. Contact the administrator.</Alert>}
         {state?.error && <Alert tone="error">{state.error}</Alert>}

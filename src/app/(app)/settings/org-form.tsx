@@ -45,7 +45,7 @@ export function OrgForm({ d }: { d: Record<string, string> }) {
             hint="Negative = before due date, 0 = on due date, positive = days overdue. Example: -3,0,1,7,15,30,60"
           />
         </FormSection>
-        <div className="flex justify-end rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-4">
+        <div className="sticky bottom-0 z-10 flex justify-end gap-2 rounded-b-xl border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
           <SubmitButton>Save settings</SubmitButton>
         </div>
       </Card>

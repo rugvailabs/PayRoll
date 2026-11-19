@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
     serverActions: { bodySizeLimit: "12mb" },
   },
   serverExternalPackages: ["pdf-lib", "nodemailer", "bcryptjs"],
+  devIndicators: false,
 };
 
 export default nextConfig;

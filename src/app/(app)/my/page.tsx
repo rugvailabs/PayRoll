@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { Briefcase, ClipboardCheck, FilePen, Wallet } from "lucide-react";
 import { Alert, Badge, Card, CardHeader, EmptyState, LinkButton, PageHeader, StatCard } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -75,10 +76,10 @@ export default async function EmployeeDashboard() {
       ))}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Current assignments" value={placements.length} hint={placements.map((p) => p.client.name).join(", ") || "Not assigned"} tone="blue" />
-        <StatCard label="Awaiting approval" value={pending.length} tone="amber" href="/my/timesheets" />
-        <StatCard label="Drafts / rejected" value={drafts.length + rejected.length} tone={drafts.length + rejected.length ? "red" : "green"} href="/my/timesheets" />
-        <StatCard label="Gross pay this year" value={formatMoney(ytd)} hint={payslips[0] ? `Last paid ${formatDate(payslips[0].payrollRun.payDate)}` : undefined} tone="green" href="/my/payslips" />
+        <StatCard label="Current assignments" value={placements.length} hint={placements.map((p) => p.client.name).join(", ") || "Not assigned"} tone="blue" icon={<Briefcase size={18} />} />
+        <StatCard label="Awaiting approval" value={pending.length} tone="amber" href="/my/timesheets" icon={<ClipboardCheck size={18} />} />
+        <StatCard label="Drafts / rejected" value={drafts.length + rejected.length} tone={drafts.length + rejected.length ? "red" : "green"} href="/my/timesheets" icon={<FilePen size={18} />} />
+        <StatCard label="Gross pay this year" value={formatMoney(ytd)} hint={payslips[0] ? `Last paid ${formatDate(payslips[0].payrollRun.payDate)}` : undefined} tone="green" href="/my/payslips" icon={<Wallet size={18} />} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">

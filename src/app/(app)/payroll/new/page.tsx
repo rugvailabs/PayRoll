@@ -44,7 +44,7 @@ export default async function NewPayrollPage({
               <input type="checkbox" name="salaried" defaultChecked={salaried} className="h-4 w-4 accent-brand-600" />
               Include salaried employees
             </label>
-            <button className="h-9 rounded-lg bg-slate-800 px-4 text-sm font-medium text-white">Load employees</button>
+            <button className="inline-flex h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition hover:bg-slate-50 hover:text-slate-900">Load employees</button>
           </form>
         </CardBody>
       </Card>

@@ -128,7 +128,7 @@ export default async function ReceivablesPage({ searchParams }: { searchParams: 
                 <option value="60">60 days</option>
                 <option value="90">90 days</option>
               </select>
-              <button className="rounded-lg bg-slate-800 px-3 py-1.5 text-white">Apply</button>
+              <button className="inline-flex h-8 items-center rounded-lg bg-white px-3 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 hover:bg-slate-50">Apply</button>
             </form>
           }
         />

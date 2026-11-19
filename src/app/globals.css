@@ -2,37 +2,69 @@
 
 @theme inline {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, "Segoe UI", Arial, sans-serif;
-  --color-brand-50: #eef4ff;
-  --color-brand-100: #dbe7fe;
-  --color-brand-200: #bfd3fe;
-  --color-brand-500: #3b6ef5;
-  --color-brand-600: #2557e8;
-  --color-brand-700: #1c45c4;
-  --color-ink-900: #0f1b2d;
-  --color-ink-800: #16263d;
-  --color-ink-700: #23364f;
+  /* Brand: deep indigo-blue */
+  --color-brand-50: #eef2ff;
+  --color-brand-100: #e0e7ff;
+  --color-brand-200: #c7d2fe;
+  --color-brand-300: #a5b4fc;
+  --color-brand-500: #4f62e8;
+  --color-brand-600: #3b4fd8;
+  --color-brand-700: #3140b5;
+  --color-brand-800: #27338f;
+  /* Sidebar ink */
+  --color-ink-950: #0b1220;
+  --color-ink-900: #111a2e;
+  --color-ink-800: #1a2540;
+  --color-ink-700: #26314f;
+  /* Chart series (validated: blue / orange) */
+  --color-series-1: #2a78d6;
+  --color-series-2: #eb6834;
 }
 
 html,
 body {
-  background: #f5f7fb;
+  background: #f6f7f9;
   color: #0f172a;
 }
 
 body {
   font-family: var(--font-sans);
+  font-size: 14px;
+  font-feature-settings: "cv11", "ss01";
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: #e0e7ff;
 }
 
 /* Shared form control look */
 .control {
-  @apply block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 shadow-xs placeholder:text-slate-400 transition;
-  @apply focus:border-brand-500 focus:ring-3 focus:ring-brand-100 focus:outline-none;
-  @apply disabled:bg-slate-100 disabled:text-slate-500;
+  @apply block w-full rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-[0_1px_2px_rgba(16,24,40,0.04)] placeholder:text-slate-400 transition;
+  @apply hover:border-slate-300;
+  @apply focus:border-brand-500 focus:ring-4 focus:ring-brand-100 focus:outline-none;
+  @apply disabled:cursor-not-allowed disabled:bg-slate-50 disabled:text-slate-500;
 }
 .control[aria-invalid="true"] {
   @apply border-red-400 focus:ring-red-100;
 }
+select.control {
+  appearance: none;
+  padding-right: 2.25rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.65rem center;
+}
+input[type="date"].control::-webkit-calendar-picker-indicator {
+  opacity: 0.55;
+  cursor: pointer;
+}
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #3b4fd8;
+}
 
+/* Tables */
 .table-wrap {
   @apply overflow-x-auto;
 }
@@ -40,13 +72,31 @@ body {
   @apply w-full text-sm;
 }
 .data-table thead th {
-  @apply bg-slate-50 px-4 py-2.5 text-left text-xs font-semibold tracking-wide text-slate-500 uppercase whitespace-nowrap border-b border-slate-200;
+  @apply bg-slate-50/80 px-4 py-2.5 text-left text-[11px] font-semibold tracking-wider text-slate-500 uppercase whitespace-nowrap border-b border-slate-200;
+}
+.data-table thead th.text-right {
+  text-align: right;
 }
 .data-table tbody td {
   @apply px-4 py-3 border-b border-slate-100 text-slate-700 whitespace-nowrap;
 }
+.data-table tbody tr:last-child td {
+  @apply border-b-0;
+}
+.data-table tbody tr {
+  @apply transition-colors;
+}
 .data-table tbody tr:hover td {
-  @apply bg-slate-50/70;
+  @apply bg-slate-50/80;
+}
+.data-table tfoot td {
+  @apply border-t border-slate-200;
+}
+
+/* Scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbd5e1 transparent;
 }
 
 @media print {

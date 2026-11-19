@@ -27,7 +27,7 @@ export default async function PlacementsPage({ searchParams }: { searchParams: P
             <option value="ENDED">Ended</option>
             <option value="ALL">All</option>
           </select>
-          <button className="rounded-lg bg-slate-800 px-4 text-sm font-medium text-white">Filter</button>
+          <button className="inline-flex h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition hover:bg-slate-50 hover:text-slate-900">Filter</button>
         </form>
         {placements.length === 0 ? (
           <EmptyState title="No placements" description="Assign an employee to a client to start collecting timesheets."

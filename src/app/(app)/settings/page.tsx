@@ -30,7 +30,7 @@ function LookupCard({ title, kind, items }: { title: string; kind: string; items
       <form action={addLookupAction} className="flex gap-2 border-t border-slate-100 p-4">
         <input type="hidden" name="kind" value={kind} />
         <input name="name" placeholder={`New ${title.toLowerCase().replace(/s$/, "")}`} className="control" required />
-        <button className="rounded-lg bg-slate-800 px-4 text-sm font-medium text-white">Add</button>
+        <button className="inline-flex h-9 items-center rounded-lg bg-white px-3.5 text-sm font-medium text-slate-700 ring-1 ring-inset ring-slate-200 shadow-[0_1px_2px_rgba(16,24,40,0.05)] transition hover:bg-slate-50 hover:text-slate-900">Add</button>
       </form>
     </Card>
   );

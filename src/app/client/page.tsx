@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AlertTriangle, CircleDollarSign, ClipboardCheck, Users } from "lucide-react";
 import { Alert, Avatar, Badge, Card, CardHeader, EmptyState, PageHeader, StatCard } from "@/components/ui";
 import { requireClientUser } from "@/lib/auth";
 import { db } from "@/lib/db";
@@ -59,10 +60,10 @@ export default async function ClientDashboard() {
       )}
 
       <div className="mb-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <StatCard label="Active consultants" value={placements.length} tone="blue" href="/client/employees" />
-        <StatCard label="Timesheets to review" value={pending.length} tone={pending.length ? "amber" : "green"} href="/client/timesheets" />
-        <StatCard label="Outstanding balance" value={formatMoney(outstanding)} hint={nextDue ? `Next due ${formatDate(nextDue.dueDate)}` : undefined} tone="slate" href="/client/payments" />
-        <StatCard label="Past due" value={formatMoney(overdueAmt)} tone={overdueAmt ? "red" : "green"} href="/client/payments" />
+        <StatCard label="Active consultants" value={placements.length} tone="blue" href="/client/employees" icon={<Users size={18} />} />
+        <StatCard label="Timesheets to review" value={pending.length} tone={pending.length ? "amber" : "green"} href="/client/timesheets" icon={<ClipboardCheck size={18} />} />
+        <StatCard label="Outstanding balance" value={formatMoney(outstanding)} hint={nextDue ? `Next due ${formatDate(nextDue.dueDate)}` : undefined} tone="slate" href="/client/payments" icon={<CircleDollarSign size={18} />} />
+        <StatCard label="Past due" value={formatMoney(overdueAmt)} tone={overdueAmt ? "red" : "green"} href="/client/payments" icon={<AlertTriangle size={18} />} />
       </div>
 
       <div className="grid gap-6 xl:grid-cols-3">

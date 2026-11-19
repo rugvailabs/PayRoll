@@ -217,7 +217,7 @@ export function EmployeeForm({
           <TextAreaField label="Internal notes" name="notes" defaultValue={d("notes")} className="sm:col-span-2 xl:col-span-3" />
         </FormSection>
 
-        <div className="flex justify-end gap-2 rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-4">
+        <div className="sticky bottom-0 z-10 flex justify-end gap-2 rounded-b-xl border-t border-slate-200 bg-white/90 px-6 py-4 backdrop-blur">
           <LinkButton href={mode === "edit" ? `/employees/${d("id")}` : "/employees"} variant="secondary">
             Cancel
           </LinkButton>

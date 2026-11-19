@@ -16,36 +16,37 @@ export function SubmitButton({
   pendingText?: string;
   variant?: "primary" | "secondary" | "ghost" | "danger" | "success";
   size?: "sm" | "md" | "lg";
+  /** When set, the first click asks for confirmation inline before submitting. */
   confirm?: string;
 }) {
   const { pending } = useFormStatus();
   const [armed, setArmed] = useState(false);
-  if (confirm && !armed) {
+  const cls = cn(buttonClass(variant, size), className);
+  const spinner = <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />;
+
+  if (!confirm) {
     return (
-      <button
-        type="button"
-        className={cn(buttonClass(variant, size), className)}
-        onClick={() => setArmed(true)}
-      >
+      <button type="submit" disabled={pending || props.disabled} className={cls} {...props}>
+        {pending && spinner}
+        {pending ? pendingText : children}
+      </button>
+    );
+  }
+  if (!armed) {
+    return (
+      <button type="button" className={cls} onClick={() => setArmed(true)}>
         {children}
       </button>
     );
   }
   return (
     <span className="inline-flex items-center gap-2">
-      {confirm && armed && !pending && <span className="text-xs text-slate-600">{confirm}</span>}
-      <button
-        type="submit"
-        disabled={pending || props.disabled}
-        className={cn(buttonClass(variant, size), className)}
-        {...props}
-      >
-        {pending && (
-          <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" />
-        )}
-        {pending ? pendingText : confirm && armed ? "Confirm" : children}
+      {!pending && <span className="text-xs text-slate-600">{confirm}</span>}
+      <button type="submit" disabled={pending || props.disabled} className={cls} {...props}>
+        {pending && spinner}
+        {pending ? pendingText : "Confirm"}
       </button>
-      {confirm && armed && !pending && (
+      {!pending && (
         <button type="button" className={buttonClass("ghost", size)} onClick={() => setArmed(false)}>
           Cancel
         </button>
