@@ -76,9 +76,12 @@ export async function loadInvoiceForPdf(organizationId: string, id: string) {
 
 /** Emails the invoice PDF to the client billing contact and marks it SENT. */
 export async function emailInvoice(organizationId: string, id: string, kind: "INVOICE_SENT" | "INVOICE_RESENT" = "INVOICE_SENT") {
-  const loaded = await loadInvoiceForPdf(organizationId, id);
-  if (!loaded) throw new Error("Invoice not found");
-  const { inv, bytes } = loaded;
+  // Lazy import avoids a circular module dependency (documents.ts imports this file).
+  const { invoiceBundle } = await import("./documents");
+  const bundle = await invoiceBundle(organizationId, id);
+  if (!bundle) throw new Error("Invoice not found");
+  const { inv, files } = bundle;
+  const tsCount = files.filter((f) => f.filename.startsWith("Timesheet-")).length;
   const hours = inv.lines.reduce((a, l) => a + l.minutes, 0);
   const result = await sendEmail({
     organizationId,
@@ -87,7 +90,7 @@ export async function emailInvoice(organizationId: string, id: string, kind: "IN
     subject: `Invoice ${inv.invoiceNumber} from ${inv.organization.name} — ${formatMoney(balanceOf(inv))} due ${formatDate(inv.dueDate)}`,
     type: kind,
     relatedId: inv.id,
-    attachments: [{ filename: `${inv.invoiceNumber}.pdf`, content: bytes, contentType: "application/pdf" }],
+    attachments: files,
     html: emailLayout(
       inv.organization.name,
       `Invoice ${inv.invoiceNumber}`,
@@ -98,6 +101,7 @@ export async function emailInvoice(organizationId: string, id: string, kind: "IN
          <tr><td style="color:#6b7280">Due date</td><td><b>${formatDate(inv.dueDate)}</b></td></tr>
          ${hours ? `<tr><td style="color:#6b7280">Total hours</td><td>${formatMinutes(hours)}</td></tr>` : ""}
        </table>
+       ${tsCount ? `<p>The approved timesheet${tsCount > 1 ? "s are" : " is"} attached for your records.</p>` : ""}
        <p>Please reference the invoice number with your payment. Thank you.</p>`,
     ),
   });

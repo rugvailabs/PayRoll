@@ -6,6 +6,7 @@ import { db } from "@/lib/db";
 import { requirePermission } from "@/lib/auth";
 import { resetToTempPassword, sendInvite } from "@/lib/accounts";
 import { audit } from "@/lib/notify";
+import { syncSeats } from "@/lib/billing";
 import { parseDate, parseMoney, str } from "@/lib/format";
 
 export type EmployeeFormState =
@@ -171,6 +172,7 @@ export async function createEmployeeAction(_: EmployeeFormState, fd: FormData): 
   });
 
   await audit(oid, admin.id, "CREATE", "Employee", employee.id, `${data.firstName} ${data.lastName}`);
+  await syncSeats(oid);
 
   let tempPassword: string | undefined;
   if (createLogin && employee.userId) {
@@ -230,6 +232,7 @@ export async function updateEmployeeAction(_: EmployeeFormState, fd: FormData): 
     }
   });
   await audit(oid, admin.id, "UPDATE", "Employee", id);
+  if (existing.status !== data.status) await syncSeats(oid);
   revalidatePath(`/employees/${id}`);
   redirect(`/employees/${id}?updated=1`);
 }

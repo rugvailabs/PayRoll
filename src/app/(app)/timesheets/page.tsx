@@ -2,21 +2,24 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Alert, Badge, Card, EmptyState, LinkButton, PageHeader, Tabs } from "@/components/ui";
 import { SubmitButton } from "@/components/ui/client";
-import { requirePermission } from "@/lib/auth";
+import { can, requirePermission } from "@/lib/auth";
+import { SelectAll } from "@/components/select-all";
 import { db } from "@/lib/db";
 import { addDays, dateToInput, formatDate, formatMinutes, frequencyLabel, fullName, periodFor, todayUtc } from "@/lib/format";
-import { bulkApproveAction } from "./actions";
+import { bulkApproveAction, raiseAction } from "./actions";
 
 export const metadata: Metadata = { title: "Timesheets" };
 
 export default async function TimesheetsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; client?: string; approved?: string }>;
+  searchParams: Promise<{ status?: string; client?: string; approved?: string; raiseError?: string }>;
 }) {
   const user = await requirePermission("timesheets.approve");
   const oid = user.organizationId;
-  const { status = "SUBMITTED", client = "", approved } = await searchParams;
+  const { status = "SUBMITTED", client = "", approved, raiseError } = await searchParams;
+  const canRaise = can(user.role, "invoices.manage") && can(user.role, "payroll.manage");
+  const selectable = status === "SUBMITTED" || (status === "APPROVED" && canRaise);
 
   const [counts, clients] = await Promise.all([
     db.timesheet.groupBy({ by: ["status"], where: { organizationId: oid }, _count: true }),
@@ -56,7 +59,13 @@ export default async function TimesheetsPage({
             ...(status !== "ALL" ? { status } : {}),
             ...(client ? { placement: { clientId: client } } : {}),
           },
-          include: { employee: true, placement: { include: { client: true } }, _count: { select: { attachments: true } } },
+          include: {
+            employee: true,
+            placement: { include: { client: true } },
+            invoice: { select: { id: true, invoiceNumber: true, status: true } },
+            payslip: { select: { payrollRunId: true, status: true } },
+            _count: { select: { attachments: true } },
+          },
           orderBy: [{ submittedAt: "desc" }, { periodStart: "desc" }],
           take: 300,
         });
@@ -69,6 +78,21 @@ export default async function TimesheetsPage({
         actions={<LinkButton href="/timesheets/new" variant="secondary">+ Enter timesheet</LinkButton>}
       />
       {approved && <div className="mb-4"><Alert tone="success">{approved} timesheet(s) approved.</Alert></div>}
+      {raiseError && (
+        <div className="mb-4">
+          <Alert tone="error">
+            {raiseError === "none" ? "Select at least one approved timesheet to raise." : raiseError === "permission" ? "You need invoice and payroll access to raise." : raiseError}
+          </Alert>
+        </div>
+      )}
+      {status === "APPROVED" && canRaise && (
+        <div className="mb-4">
+          <Alert tone="info">
+            Select approved timesheets and click <b>Raise invoices &amp; payroll</b>. This creates a <b>draft invoice per candidate</b> and a <b>draft payroll run</b>.
+            Nothing is emailed until you review the drafts and send them from Invoices.
+          </Alert>
+        </div>
+      )}
       <Tabs
         active={status}
         tabs={[
@@ -116,22 +140,26 @@ export default async function TimesheetsPage({
         ) : timesheets.length === 0 ? (
           <EmptyState title="No timesheets" description={status === "SUBMITTED" ? "Nothing is waiting for approval." : undefined} />
         ) : (
-          <form action={bulkApproveAction}>
+          <form action={status === "APPROVED" ? raiseAction : bulkApproveAction}>
             <div className="table-wrap">
               <table className="data-table">
                 <thead>
                   <tr>
-                    {status === "SUBMITTED" && <th className="w-8" />}
+                    {selectable && <th className="w-8"><SelectAll /></th>}
                     <th>Employee name</th><th>From date</th><th>To date</th><th>Submitted on</th>
                     <th className="text-right">Total hours</th><th className="text-right">Billable hours</th>
                     <th>Status</th><th>Client</th><th>Frequency</th><th>Employee ID</th><th>Files</th>
+                    {status === "APPROVED" && <><th>Invoice</th><th>Payroll</th></>}
                   </tr>
                 </thead>
                 <tbody>
                   {timesheets.map((t) => (
                     <tr key={t.id}>
-                      {status === "SUBMITTED" && (
-                        <td><input type="checkbox" name="ids" value={t.id} className="h-4 w-4 accent-brand-600" aria-label="Select" /></td>
+                      {selectable && (
+                        <td>
+                          <input type="checkbox" name="ids" value={t.id} className="h-4 w-4" aria-label="Select"
+                            disabled={status === "APPROVED" && !!t.invoiceId && !!t.payslipId} />
+                        </td>
                       )}
                       <td><Link href={`/timesheets/${t.id}`} className="font-medium text-slate-900 hover:text-brand-600">{fullName(t.employee)}</Link></td>
                       <td>{formatDate(t.periodStart)}</td>
@@ -144,6 +172,22 @@ export default async function TimesheetsPage({
                       <td>{frequencyLabel(t.placement.timesheetFrequency)}</td>
                       <td className="font-mono text-xs">{t.employee.employeeCode}</td>
                       <td>{t._count.attachments ? `📎 ${t._count.attachments}` : <span className="text-red-500">None</span>}</td>
+                      {status === "APPROVED" && (
+                        <>
+                          <td>
+                            {t.invoice ? (
+                              <Link href={`/invoices/${t.invoice.id}`} className="inline-flex items-center gap-1.5 font-medium text-brand-600 hover:underline">
+                                {t.invoice.invoiceNumber} <Badge status={t.invoice.status} />
+                              </Link>
+                            ) : <span className="text-xs font-medium text-amber-700">Not invoiced</span>}
+                          </td>
+                          <td>
+                            {t.payslip ? (
+                              <Link href={`/payroll/${t.payslip.payrollRunId}`} className="hover:underline"><Badge status={t.payslip.status} /></Link>
+                            ) : <span className="text-xs font-medium text-amber-700">Not on payroll</span>}
+                          </td>
+                        </>
+                      )}
                     </tr>
                   ))}
                 </tbody>
@@ -152,6 +196,12 @@ export default async function TimesheetsPage({
             {status === "SUBMITTED" && (
               <div className="flex justify-end border-t border-slate-100 p-4">
                 <SubmitButton variant="success" pendingText="Approving…">Approve selected</SubmitButton>
+              </div>
+            )}
+            {status === "APPROVED" && canRaise && (
+              <div className="sticky bottom-0 flex flex-wrap items-center justify-between gap-3 rounded-b-xl border-t border-slate-200 bg-white/90 p-4 backdrop-blur">
+                <p className="text-xs text-slate-500">Rows already invoiced and on payroll can&apos;t be selected.</p>
+                <SubmitButton pendingText="Raising…">Raise invoices &amp; payroll</SubmitButton>
               </div>
             )}
           </form>

@@ -106,7 +106,7 @@ export async function signupAction(_: FormState, formData: FormData): Promise<Fo
   });
   await startSession(user);
   await audit(user.organizationId, user.id, "SIGNUP", "Organization", user.organizationId);
-  redirect("/dashboard?welcome=1");
+  redirect("/billing?welcome=1");
 }
 
 export async function setPasswordAction(_: FormState, formData: FormData): Promise<FormState> {

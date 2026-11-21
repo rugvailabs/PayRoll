@@ -32,6 +32,20 @@ model Organization {
   // Negative = before due date, 0 = on due date, positive = days overdue.
   reminderOffsets String   @default("-3,0,1,7,15,30")
   remindersEnabled Boolean @default(true)
+
+  // ---- SaaS subscription (platform billing) ----
+  billingProvider        String?   // STRIPE | RAZORPAY
+  // NONE | INCOMPLETE | TRIALING | ACTIVE | PAST_DUE | UNPAID | CANCELED | COMPLIMENTARY
+  subscriptionStatus     String    @default("NONE")
+  stripeCustomerId       String?
+  stripeSubscriptionId   String?
+  razorpaySubscriptionId String?
+  trialEndsAt            DateTime?
+  currentPeriodEnd       DateTime?
+  pastDueSince           DateTime?
+  billedQuantity         Int       @default(0)
+  billingUpdatedAt       DateTime?
+
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 

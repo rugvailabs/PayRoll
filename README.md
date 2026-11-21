@@ -113,3 +113,29 @@ src/app/(app)/              employees, clients, placements, timesheets, invoices
                             receivables (aging), payroll, my/*, settings, emails
 src/app/api/                PDFs, attachment downloads, cron endpoint
 ```
+
+## Bulk raise, sending and downloads
+
+- **Timesheets → Approved**: tick timesheets (or select all) and click **Raise invoices & payroll**. This creates a
+  **draft invoice per candidate** (per client) and one **draft payroll run** for the same timesheets. Nothing is emailed yet.
+- **Invoices → Drafts**: recheck the drafts, select them and click **Send to clients**. Each email carries the invoice PDF,
+  a generated PDF of each approved timesheet, and the employee's original client-approved file.
+- **Payments & Aging**: switch between **By client** and **By candidate**; the unpaid list shows the candidate on each invoice.
+- **Downloads**: *Export to Excel* (invoices list, aging by client/candidate) and *Download PDFs (ZIP)* for selected invoices.
+
+## Subscription billing (SaaS)
+
+New organizations must start a subscription before using the app: **14-day free trial, card required**, then billed
+**per active employee per month**. Stripe handles USD, Razorpay handles INR. The billed seat count follows the number of
+active employees automatically. If a payment fails, admins get a warning banner for **7 days**; after that the app is
+locked (admins see Billing, everyone else sees an "access paused" page) until payment succeeds. Existing organizations
+and the demo org are marked **complimentary**.
+
+Setup (keys go in `.env`; see `.env.example`):
+
+| Gateway | What to create | Env vars | Webhook URL |
+|---|---|---|---|
+| Stripe | Recurring **per-unit** Price, monthly | `STRIPE_SECRET_KEY`, `STRIPE_PRICE_ID`, `STRIPE_WEBHOOK_SECRET`, `PRICE_PER_EMPLOYEE_USD` | `/api/billing/stripe/webhook` (subscription + invoice events) |
+| Razorpay | Monthly **Plan** (amount = price per employee) | `RAZORPAY_KEY_ID`, `RAZORPAY_KEY_SECRET`, `RAZORPAY_PLAN_ID`, `RAZORPAY_WEBHOOK_SECRET`, `PRICE_PER_EMPLOYEE_INR` | `/api/billing/razorpay/webhook` (subscription events) |
+
+With no keys set, local development shows a **Start trial (dev only)** button; it is disabled in production.

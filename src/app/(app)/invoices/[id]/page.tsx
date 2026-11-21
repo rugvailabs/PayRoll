@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { Alert, Badge, Card, CardBody, CardHeader, DescList, PageHeader, StatCard } from "@/components/ui";
 import { can, requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { centsToInput, dateToInput, formatDate, formatDateTime, formatMinutes, formatMoney, todayUtc } from "@/lib/format";
+import { centsToInput, dateToInput, formatDate, formatDateTime, formatMinutes, formatMoney, fullName, todayUtc } from "@/lib/format";
 import { balanceOf, daysOverdue, displayStatus } from "@/lib/finance";
 import { DeletePayment, InvoiceActions, PaymentForm } from "./panels";
 
@@ -16,7 +16,12 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
   const { created } = await searchParams;
   const inv = await db.invoice.findFirst({
     where: { id, organizationId: user.organizationId },
-    include: { client: true, lines: true, payments: { orderBy: { paidOn: "desc" } } },
+    include: {
+      client: true,
+      lines: true,
+      payments: { orderBy: { paidOn: "desc" } },
+      timesheets: { include: { employee: true, attachments: true }, orderBy: { periodStart: "asc" } },
+    },
   });
   if (!inv) notFound();
   const emails = await db.emailLog.findMany({
@@ -33,7 +38,12 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
       <PageHeader
         back={{ href: "/invoices", label: "Invoices" }}
         title={<span className="flex items-center gap-3">{inv.invoiceNumber} <Badge status={st} /></span>}
-        subtitle={<Link href={`/clients/${inv.clientId}`} className="hover:text-brand-600">{inv.client.name}</Link>}
+        subtitle={
+          <span>
+            <Link href={`/clients/${inv.clientId}`} className="hover:text-brand-600">{inv.client.name}</Link>
+            {inv.timesheets.length > 0 && <> · Candidate: <span className="font-medium text-slate-700">{[...new Set(inv.timesheets.map((t) => fullName(t.employee)))].join(", ")}</span></>}
+          </span>
+        }
       />
       {created && <div className="mb-4"><Alert tone="success">Invoice created{inv.status === "SENT" ? " and sent to the client" : ""}.</Alert></div>}
       {od > 0 && <div className="mb-4"><Alert tone="error">This invoice is <b>{od} days overdue</b>. Balance {formatMoney(balance)}.</Alert></div>}
@@ -124,6 +134,25 @@ export default async function InvoicePage({ params, searchParams }: { params: Pr
         <div className="space-y-6">
           {can(user.role, "payments.manage") && (inv.status === "SENT" || inv.status === "PARTIAL") && (
             <PaymentForm invoiceId={inv.id} balance={centsToInput(balance)} today={dateToInput(todayUtc())} />
+          )}
+          {inv.timesheets.length > 0 && (
+            <Card>
+              <CardHeader title="Approved timesheets" subtitle="Attached to the email sent to the client" />
+              <ul className="divide-y divide-slate-100">
+                {inv.timesheets.map((t) => (
+                  <li key={t.id} className="px-5 py-3 text-sm">
+                    <div className="flex items-center justify-between gap-2">
+                      <Link href={`/timesheets/${t.id}`} className="font-medium text-slate-900 hover:text-brand-600">{fullName(t.employee)}</Link>
+                      <a href={`/api/timesheets/${t.id}/pdf`} target="_blank" className="text-[13px] font-medium text-brand-600 hover:underline">Timesheet PDF</a>
+                    </div>
+                    <p className="text-xs text-slate-500">{formatDate(t.periodStart)} – {formatDate(t.periodEnd)} · {formatMinutes(t.totalMinutes)} hrs</p>
+                    {t.attachments.map((a) => (
+                      <a key={a.id} href={`/api/attachments/${a.id}`} target="_blank" className="mt-1 block truncate text-xs text-slate-500 hover:text-brand-600">📎 {a.fileName}</a>
+                    ))}
+                  </li>
+                ))}
+              </ul>
+            </Card>
           )}
           <Card>
             <CardHeader title="Details" />

@@ -2,6 +2,8 @@ import { redirect } from "next/navigation";
 import { AppShell, type NavGroup, type QuickLink } from "@/components/shell";
 import { can, requireUser } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { accessFor } from "@/lib/billing";
+import { Alert } from "@/components/ui";
 
 const ROLE_LABEL = { ADMIN: "Administrator", MANAGER: "Manager", ACCOUNTANT: "Accountant", EMPLOYEE: "Employee", CLIENT: "Client" };
 
@@ -52,6 +54,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (can(user.role, "settings.manage")) {
     system.items.push({ href: "/emails", label: "Email Outbox", icon: "emails" });
     system.items.push({ href: "/settings", label: "Settings", icon: "settings" });
+    if (user.role === "ADMIN") system.items.push({ href: "/billing", label: "Billing", icon: "payroll" });
   }
   nav.push(system);
 
@@ -77,6 +80,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       unread={unread}
       searchHref={user.role === "EMPLOYEE" ? undefined : "/search"}
     >
+      {(() => {
+        const a = accessFor(user.organization);
+        return a.state === "ok" && a.banner && user.role === "ADMIN" ? (
+          <div className="mb-6">
+            <Alert tone={a.banner.tone}>
+              {a.banner.text} <a href="/billing" className="font-semibold underline">Go to billing</a>
+            </Alert>
+          </div>
+        ) : null;
+      })()}
       {children}
     </AppShell>
   );

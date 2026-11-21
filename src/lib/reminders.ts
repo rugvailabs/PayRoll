@@ -1,5 +1,6 @@
 import "server-only";
 import { db } from "./db";
+import { accessFor } from "./billing";
 import { emailLayout, esc, sendEmail } from "./email";
 import { notifyClientUsers, notifyRoles, notifyUsers } from "./notify";
 import { addDays, dateToInput, daysBetween, formatDate, formatMoney, periodFor, todayUtc } from "./format";
@@ -169,9 +170,12 @@ export async function runTimesheetReminders(organizationId: string) {
 }
 
 export async function runAllReminders() {
-  const orgs = await db.organization.findMany({ select: { id: true, name: true } });
+  const orgs = await db.organization.findMany({
+    select: { id: true, name: true, subscriptionStatus: true, trialEndsAt: true, currentPeriodEnd: true, pastDueSince: true },
+  });
   const results = [];
   for (const o of orgs) {
+    if (accessFor(o).state === "locked") continue; // no automated emails for locked subscriptions
     try {
       const pay = await runPaymentReminders(o.id);
       const ts = await runTimesheetReminders(o.id);

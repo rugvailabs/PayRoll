@@ -1,3 +1,4 @@
+import { activeUserForSession } from "@/lib/route-auth";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { db } from "@/lib/db";
@@ -8,7 +9,7 @@ import { loadInvoiceForPdf } from "@/lib/invoicing";
 export async function GET(_: Request, { params }: { params: Promise<{ id: string }> }) {
   const session = await verifySession((await cookies()).get(SESSION_COOKIE)?.value);
   if (!session) return new NextResponse("Unauthorized", { status: 401 });
-  const user = await db.user.findFirst({ where: { id: session.uid, organizationId: session.oid, isActive: true } });
+  const user = await activeUserForSession(session);
   if (!user) return new NextResponse("Unauthorized", { status: 401 });
   const { id } = await params;
   // Staff with invoice access, or a client user downloading their own company's sent invoice.

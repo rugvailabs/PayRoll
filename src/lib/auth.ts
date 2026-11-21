@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { cache } from "react";
 import { db } from "./db";
+import { accessFor } from "./billing";
 import { homeFor, SESSION_COOKIE, verifySession, type Role } from "./session";
 
 export type Permission =
@@ -45,8 +46,8 @@ export const getSession = cache(async () => {
   return verifySession(store.get(SESSION_COOKIE)?.value);
 });
 
-/** Returns the signed-in, active user (with org). Redirects to /login otherwise. */
-export const requireUser = cache(async () => {
+/** Signed-in, active user (with org) WITHOUT the subscription check. Only for billing pages. */
+export const requireUserAllowLocked = cache(async () => {
   const session = await getSession();
   if (!session) redirect("/login");
   const user = await db.user.findFirst({
@@ -55,6 +56,16 @@ export const requireUser = cache(async () => {
   });
   if (!user) redirect("/login");
   return { ...user, role: user.role as Role };
+});
+
+/**
+ * Signed-in, active user whose organization has an active subscription.
+ * Locked organizations: admins go to /billing, everyone else to /suspended.
+ */
+export const requireUser = cache(async () => {
+  const user = await requireUserAllowLocked();
+  if (accessFor(user.organization).state === "locked") redirect(user.role === "ADMIN" ? "/billing" : "/suspended");
+  return user;
 });
 
 export async function requirePermission(perm: Permission) {

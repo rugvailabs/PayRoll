@@ -219,3 +219,19 @@ export async function deletePaymentAction(_: InvState, fd: FormData): Promise<In
   revalidatePath(`/invoices/${p.invoiceId}`);
   return { ok: "Payment removed." };
 }
+
+/** Send selected DRAFT invoices to their clients (invoice PDF + timesheet PDFs + approved sheets attached). */
+export async function sendInvoicesAction(fd: FormData) {
+  const user = await requirePermission("invoices.manage");
+  const ids = fd.getAll("ids").map(String);
+  const drafts = await db.invoice.findMany({ where: { id: { in: ids }, organizationId: user.organizationId, status: "DRAFT" }, select: { id: true } });
+  let sent = 0, failed = 0;
+  for (const d of drafts) {
+    const r = await emailInvoice(user.organizationId, d.id);
+    if (r.status === "FAILED") failed++;
+    else sent++;
+    await audit(user.organizationId, user.id, "SEND", "Invoice", d.id);
+  }
+  revalidatePath("/invoices");
+  redirect(`/invoices?status=${failed ? "DRAFT" : "OPEN"}&sent=${sent}${failed ? `&failed=${failed}` : ""}`);
+}

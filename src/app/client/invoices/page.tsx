@@ -4,7 +4,7 @@ import { Badge, Card, EmptyState, PageHeader, Tabs } from "@/components/ui";
 import { requireClientUser } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDate, formatMoney, todayUtc } from "@/lib/format";
-import { balanceOf, daysOverdue, displayStatus } from "@/lib/finance";
+import { balanceOf, candidateNames, daysOverdue, displayStatus } from "@/lib/finance";
 
 export const metadata: Metadata = { title: "Invoices" };
 
@@ -18,6 +18,7 @@ export default async function ClientInvoicesPage({ searchParams }: { searchParam
       clientId: user.client.id,
       status: status === "PAID" ? "PAID" : status === "ALL" ? { in: ["SENT", "PARTIAL", "PAID"] } : { in: ["SENT", "PARTIAL"] },
     },
+    include: { timesheets: { select: { employee: { select: { firstName: true, middleName: true, lastName: true } } } } },
     orderBy: { issueDate: "desc" },
   });
   return (
@@ -37,7 +38,7 @@ export default async function ClientInvoicesPage({ searchParams }: { searchParam
         ) : (
           <div className="table-wrap">
             <table className="data-table">
-              <thead><tr><th>Invoice #</th><th>Service period</th><th>Issued</th><th>Due</th><th className="text-right">Days past due</th>
+              <thead><tr><th>Invoice #</th><th>Consultant</th><th>Service period</th><th>Issued</th><th>Due</th><th className="text-right">Days past due</th>
                 <th className="text-right">Amount</th><th className="text-right">Paid</th><th className="text-right">Balance</th><th>Status</th><th /></tr></thead>
               <tbody>
                 {invoices.map((i) => {
@@ -46,6 +47,7 @@ export default async function ClientInvoicesPage({ searchParams }: { searchParam
                   return (
                     <tr key={i.id}>
                       <td><Link href={`/client/invoices/${i.id}`} className="font-medium text-slate-900 hover:text-brand-600">{i.invoiceNumber}</Link></td>
+                      <td>{candidateNames(i) || "—"}</td>
                       <td>{i.periodStart ? `${formatDate(i.periodStart)} – ${formatDate(i.periodEnd)}` : "—"}</td>
                       <td>{formatDate(i.issueDate)}</td>
                       <td>{formatDate(i.dueDate)}</td>

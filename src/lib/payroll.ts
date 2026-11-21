@@ -16,18 +16,17 @@ export type PayrollPreviewRow = {
   grossPay: number;
 };
 
-/** Approved timesheets inside the period that are not yet on a payslip, grouped per employee. */
-export async function payrollPreview(organizationId: string, start: Date, end: Date, includeSalaried: boolean) {
-  const timesheets = await db.timesheet.findMany({
-    where: {
-      organizationId,
-      status: "APPROVED",
-      payslipId: null,
-      periodStart: { gte: start },
-      periodEnd: { lte: end },
-    },
-    include: { employee: true, placement: true },
-  });
+type TsForPay = {
+  id: string;
+  employeeId: string;
+  regularMinutes: number;
+  overtimeMinutes: number;
+  employee: { firstName: string; middleName: string | null; lastName: string; employeeCode: string };
+  placement: { payRate: number; otPayRate: number };
+};
+
+/** Gross pay per employee for the given timesheets (hours x pay rate, OT at 1.5x unless set). */
+export function rowsFromTimesheets(timesheets: TsForPay[]) {
   const rows = new Map<string, PayrollPreviewRow>();
   for (const t of timesheets) {
     const r = rows.get(t.employeeId) ?? {
@@ -42,6 +41,22 @@ export async function payrollPreview(organizationId: string, start: Date, end: D
     r.grossPay = r.regularPay + r.overtimePay;
     rows.set(t.employeeId, r);
   }
+  return rows;
+}
+
+/** Approved timesheets inside the period that are not yet on a payslip, grouped per employee. */
+export async function payrollPreview(organizationId: string, start: Date, end: Date, includeSalaried: boolean) {
+  const timesheets = await db.timesheet.findMany({
+    where: {
+      organizationId,
+      status: "APPROVED",
+      payslipId: null,
+      periodStart: { gte: start },
+      periodEnd: { lte: end },
+    },
+    include: { employee: true, placement: true },
+  });
+  const rows = rowsFromTimesheets(timesheets);
   if (includeSalaried) {
     const salaried = await db.employee.findMany({
       where: { organizationId, status: "ACTIVE", payType: "SALARY", defaultPayRate: { gt: 0 } },

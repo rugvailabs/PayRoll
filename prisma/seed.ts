@@ -16,6 +16,7 @@ async function main() {
     data: {
       name: "Demo Staffing Inc",
       slug: "demo",
+      subscriptionStatus: "COMPLIMENTARY",
       email: "accounts@demo-staffing.test",
       phone: "(512) 555-0100",
       address: "100 Congress Ave",

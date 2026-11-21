@@ -279,3 +279,23 @@ export async function bulkApproveAction(fd: FormData) {
   revalidatePath("/timesheets");
   redirect(`/timesheets?status=SUBMITTED&approved=${sheets.length}`);
 }
+
+/** Bulk "Raise": draft invoice per candidate + draft payroll run from the selected approved timesheets. */
+export async function raiseAction(fd: FormData) {
+  const user = await requireUser();
+  if (!can(user.role, "invoices.manage") || !can(user.role, "payroll.manage")) redirect("/timesheets?status=APPROVED&raiseError=permission");
+  const ids = fd.getAll("ids").map(String);
+  if (!ids.length) redirect("/timesheets?status=APPROVED&raiseError=none");
+  const { raiseFromTimesheets } = await import("@/lib/raise");
+  let result;
+  try {
+    result = await raiseFromTimesheets(user.organizationId, user.id, ids);
+  } catch (e) {
+    redirect(`/timesheets?status=APPROVED&raiseError=${encodeURIComponent(e instanceof Error ? e.message : "failed")}`);
+  }
+  await audit(user.organizationId, user.id, "RAISE", "Timesheet", undefined, `${result.invoices} invoice(s), ${result.payslips} payslip(s)`);
+  revalidatePath("/timesheets");
+  revalidatePath("/invoices");
+  revalidatePath("/payroll");
+  redirect(`/invoices?status=DRAFT&raised=${result.invoices}&payslips=${result.payslips}${result.runId ? `&run=${result.runId}` : ""}`);
+}
