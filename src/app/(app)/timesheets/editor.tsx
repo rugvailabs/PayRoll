@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useMemo, useState } from "react";
+import { useActionState, useMemo, useRef, useState } from "react";
 import { Paperclip, Trash2, Upload } from "lucide-react";
 import { Alert, Card, CardHeader, cn } from "@/components/ui";
 import { SubmitButton } from "@/components/ui/client";
@@ -39,6 +39,8 @@ export function TimesheetEditor({
   const [state, action] = useActionState<TsState, FormData>(saveTimesheetAction, undefined);
   const [upState, upAction] = useActionState<TsState, FormData>(uploadAttachmentAction, undefined);
   const [values, setValues] = useState(() => Object.fromEntries(days.map((d) => [d.key, { reg: d.reg, ot: d.ot }])));
+  const intentRef = useRef<HTMLInputElement>(null);
+  const setIntent = (v: string) => { if (intentRef.current) intentRef.current.value = v; };
 
   const totals = useMemo(() => {
     let reg = 0, ot = 0;
@@ -60,6 +62,7 @@ export function TimesheetEditor({
     <div className="grid gap-6 xl:grid-cols-3">
       <form action={action} className="xl:col-span-2">
         <input type="hidden" name="id" value={id} />
+        <input type="hidden" name="intent" ref={intentRef} defaultValue="save" />
         <Card>
           <CardHeader
             title="Daily hours"
@@ -128,11 +131,11 @@ export function TimesheetEditor({
           </div>
           {editable && (
             <div className="flex flex-wrap justify-end gap-2 rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-4">
-              <SubmitButton name="intent" value="save" variant="secondary">Save draft</SubmitButton>
+              <SubmitButton onClick={() => setIntent("save")} variant="secondary">Save draft</SubmitButton>
               {canApprove ? (
-                <SubmitButton name="intent" value="approve" variant="success" pendingText="Approving…">Save &amp; approve</SubmitButton>
+                <SubmitButton onClick={() => setIntent("approve")} variant="success" pendingText="Approving…">Save &amp; approve</SubmitButton>
               ) : (
-                <SubmitButton name="intent" value="submit" pendingText="Submitting…">Submit for approval</SubmitButton>
+                <SubmitButton onClick={() => setIntent("submit")} pendingText="Submitting…">Submit for approval</SubmitButton>
               )}
             </div>
           )}
