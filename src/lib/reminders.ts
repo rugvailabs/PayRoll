@@ -42,13 +42,16 @@ export async function runPaymentReminders(organizationId: string) {
     const title =
       offset < 0 ? `Payment reminder: due in ${-d} day${-d === 1 ? "" : "s"}`
       : offset === 0 ? "Payment due today"
+      : offset === 7 ? "Payment not yet received"
       : `Payment overdue by ${d} day${d === 1 ? "" : "s"}`;
     const intro =
       offset < 0
         ? `This is a friendly reminder that invoice <b>${esc(inv.invoiceNumber)}</b> is due on <b>${formatDate(inv.dueDate)}</b>.`
         : offset === 0
           ? `Invoice <b>${esc(inv.invoiceNumber)}</b> is due <b>today</b>.`
-          : `Our records show invoice <b>${esc(inv.invoiceNumber)}</b> was due on <b>${formatDate(inv.dueDate)}</b> and is now <b>${d} days overdue</b>.`;
+          : offset === 7
+            ? `We're writing to let you know that your payment for invoice <b>${esc(inv.invoiceNumber)}</b>, due on <b>${formatDate(inv.dueDate)}</b>, has not yet been received. We appreciate your time and prompt attention to this matter.`
+            : `Our records show invoice <b>${esc(inv.invoiceNumber)}</b> was due on <b>${formatDate(inv.dueDate)}</b> and is now <b>${d} days overdue</b>.`;
 
     await sendEmail({
       organizationId,
