@@ -1,4 +1,5 @@
 import "server-only";
+import JSZip from "jszip";
 import { db } from "./db";
 import { emailLayout, esc, sendEmail } from "./email";
 import { invoicePdf } from "./pdf";
@@ -83,6 +84,11 @@ export async function emailInvoice(organizationId: string, id: string, kind: "IN
   const { inv, files } = bundle;
   const tsCount = files.filter((f) => f.filename.startsWith("Timesheet-")).length;
   const hours = inv.lines.reduce((a, l) => a + l.minutes, 0);
+
+  const zip = new JSZip();
+  for (const f of files) zip.file(f.filename, f.content);
+  const zipBytes = await zip.generateAsync({ type: "uint8array", compression: "DEFLATE" });
+
   const result = await sendEmail({
     organizationId,
     to: inv.client.billingEmail,
@@ -90,18 +96,17 @@ export async function emailInvoice(organizationId: string, id: string, kind: "IN
     subject: `Invoice ${inv.invoiceNumber} from ${inv.organization.name} — ${formatMoney(balanceOf(inv))} due ${formatDate(inv.dueDate)}`,
     type: kind,
     relatedId: inv.id,
-    attachments: files,
+    attachments: [{ filename: `${inv.invoiceNumber}.zip`, content: zipBytes, contentType: "application/zip" }],
     html: emailLayout(
       inv.organization.name,
       `Invoice ${inv.invoiceNumber}`,
       `<p>Hello ${esc(inv.client.billingContactName ?? inv.client.name)},</p>
-       <p>Please find attached invoice <b>${esc(inv.invoiceNumber)}</b>${inv.periodStart && inv.periodEnd ? ` for services from ${formatDate(inv.periodStart)} to ${formatDate(inv.periodEnd)}` : ""}.</p>
+       <p>Please find attached a zip file with invoice <b>${esc(inv.invoiceNumber)}</b>${inv.periodStart && inv.periodEnd ? ` for services from ${formatDate(inv.periodStart)} to ${formatDate(inv.periodEnd)}` : ""}${tsCount ? ` and the approved timesheet${tsCount > 1 ? "s" : ""}` : ""}.</p>
        <table cellpadding="6" style="border-collapse:collapse;font-size:14px;margin:12px 0">
          <tr><td style="color:#6b7280">Amount due</td><td><b>${formatMoney(balanceOf(inv))}</b></td></tr>
          <tr><td style="color:#6b7280">Due date</td><td><b>${formatDate(inv.dueDate)}</b></td></tr>
          ${hours ? `<tr><td style="color:#6b7280">Total hours</td><td>${formatMinutes(hours)}</td></tr>` : ""}
        </table>
-       ${tsCount ? `<p>The approved timesheet${tsCount > 1 ? "s are" : " is"} attached for your records.</p>` : ""}
        <p>Please reference the invoice number with your payment. Thank you.</p>`,
     ),
   });
