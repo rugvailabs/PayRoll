@@ -7,7 +7,7 @@ export { clsx as cn };
 
 /* ---------------- Buttons ---------------- */
 
-type Variant = "primary" | "secondary" | "ghost" | "danger" | "success";
+type Variant = "primary" | "secondary" | "ghost" | "danger" | "success" | "warning";
 const variantClass: Record<Variant, string> = {
   primary:
     "bg-brand-600 text-white shadow-[0_1px_2px_rgba(16,24,40,0.12),inset_0_1px_0_rgba(255,255,255,0.12)] hover:bg-brand-700 focus-visible:ring-brand-200",
@@ -16,6 +16,7 @@ const variantClass: Record<Variant, string> = {
   ghost: "text-slate-600 hover:bg-slate-100 hover:text-slate-900 focus-visible:ring-brand-200",
   danger: "bg-red-600 text-white shadow-sm hover:bg-red-700 focus-visible:ring-red-200",
   success: "bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 focus-visible:ring-emerald-200",
+  warning: "bg-amber-500 text-white shadow-sm hover:bg-amber-600 focus-visible:ring-amber-200",
 };
 const sizeClass = { sm: "h-8 px-3 text-xs", md: "h-9 px-3.5 text-sm", lg: "h-11 px-5 text-sm" };
 
@@ -150,6 +151,42 @@ export function StatCard({
     </Link>
   ) : (
     body
+  );
+}
+
+const pillTone = {
+  purple: "bg-violet-600 text-white",
+  green: "bg-emerald-600 text-white",
+  amber: "bg-amber-500 text-white",
+  blue: "bg-sky-500 text-white",
+  slate: "bg-slate-500 text-white",
+};
+
+/** Vivid solid-color stat chip (label on top, bold value below) for compact summary rows. */
+export function StatPill({ label, value, tone = "slate" }: { label: string; value: ReactNode; tone?: keyof typeof pillTone }) {
+  return (
+    <div className="inline-flex min-w-24 flex-col overflow-hidden rounded-lg shadow-[0_1px_2px_rgba(16,24,40,0.08)]">
+      <span className={clsx("px-2.5 py-1 text-[10.5px] font-bold uppercase tracking-wide", pillTone[tone])}>{label}</span>
+      <span className="bg-white px-2.5 py-1.5 text-[15px] font-semibold tabular-nums text-slate-900 ring-1 ring-inset ring-slate-200">{value}</span>
+    </div>
+  );
+}
+
+const legendDot: Record<string, string> = {
+  slate: "#94a3b8", blue: "#3b82f6", green: "#10b981", amber: "#f59e0b", red: "#ef4444", purple: "#8b5cf6",
+};
+
+/** Small inline status-color key, e.g. above a timesheet grid. */
+export function Legend({ items }: { items: { label: string; tone: keyof typeof legendDot }[] }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 text-xs font-medium text-slate-500">
+      {items.map((i) => (
+        <span key={i.label} className="inline-flex items-center gap-1.5">
+          <span className="h-2 w-2 rounded-full" style={{ background: legendDot[i.tone] }} aria-hidden />
+          {i.label}
+        </span>
+      ))}
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useRef, useState } from "react";
 import { Paperclip, Trash2, Upload } from "lucide-react";
-import { Alert, Card, CardHeader, cn } from "@/components/ui";
+import { Alert, Card, CardHeader, cn, Legend } from "@/components/ui";
 import { SubmitButton } from "@/components/ui/client";
 import { deleteAttachmentAction, saveTimesheetAction, uploadAttachmentAction, type TsState } from "./actions";
 
@@ -63,6 +63,17 @@ export function TimesheetEditor({
       <form action={action} className="xl:col-span-2">
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="intent" ref={intentRef} defaultValue="save" />
+        <div className="mb-3">
+          <Legend
+            items={[
+              { label: "Weekend", tone: "slate" },
+              { label: "Draft", tone: "slate" },
+              { label: "Submitted", tone: "blue" },
+              { label: "Approved", tone: "green" },
+              { label: "Rejected", tone: "red" },
+            ]}
+          />
+        </div>
         <Card>
           <CardHeader
             title="Daily hours"
@@ -131,11 +142,11 @@ export function TimesheetEditor({
           </div>
           {editable && (
             <div className="flex flex-wrap justify-end gap-2 rounded-b-xl border-t border-slate-100 bg-slate-50 px-5 py-4">
-              <SubmitButton onClick={() => setIntent("save")} variant="secondary">Save draft</SubmitButton>
+              <SubmitButton onClick={() => setIntent("save")} variant="warning">Save draft</SubmitButton>
               {canApprove ? (
                 <SubmitButton onClick={() => setIntent("approve")} variant="success" pendingText="Approving…">Save &amp; approve</SubmitButton>
               ) : (
-                <SubmitButton onClick={() => setIntent("submit")} pendingText="Submitting…">Submit for approval</SubmitButton>
+                <SubmitButton onClick={() => setIntent("submit")} variant="success" pendingText="Submitting…">Submit for approval</SubmitButton>
               )}
             </div>
           )}

@@ -14,7 +14,7 @@ export function SubmitButton({
   ...props
 }: ComponentProps<"button"> & {
   pendingText?: string;
-  variant?: "primary" | "secondary" | "ghost" | "danger" | "success";
+  variant?: "primary" | "secondary" | "ghost" | "danger" | "success" | "warning";
   size?: "sm" | "md" | "lg";
   /** When set, the first click asks for confirmation inline before submitting. */
   confirm?: string;

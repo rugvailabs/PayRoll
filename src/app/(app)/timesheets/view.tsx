@@ -1,4 +1,4 @@
-import { Badge, Card, CardBody, DescList } from "@/components/ui";
+import { Badge, Card, CardBody, DescList, StatPill } from "@/components/ui";
 import { dateToInput, eachDay, formatDate, formatDateTime, formatMinutes, frequencyLabel, fullName, minutesToInput } from "@/lib/format";
 import { inPlacement } from "@/lib/timesheets";
 import type { Attachment, Client, Employee, Placement, Timesheet, TimesheetEntry } from "@prisma/client";
@@ -50,12 +50,17 @@ export function TimesheetSummary({ ts }: { ts: FullTimesheet }) {
             { label: "Period", value: `${formatDate(ts.periodStart)} – ${formatDate(ts.periodEnd)}` },
             { label: "Frequency", value: frequencyLabel(ts.placement.timesheetFrequency) },
             { label: "Status", value: <Badge status={ts.status} /> },
-            { label: "Total hours", value: <span className="font-semibold">{formatMinutes(ts.totalMinutes)}</span> },
             { label: "Submitted", value: formatDateTime(ts.submittedAt) },
             { label: "Reviewed", value: ts.reviewedAt ? `${formatDateTime(ts.reviewedAt)}${ts.reviewedByName ? ` by ${ts.reviewedByName}` : ""}` : null },
             { label: "Project", value: ts.placement.projectName },
           ]}
         />
+        <div className="mt-5 flex flex-wrap gap-3 border-t border-slate-100 pt-5">
+          <StatPill label="Total" value={formatMinutes(ts.totalMinutes)} tone="purple" />
+          <StatPill label="Billable" value={formatMinutes(ts.billableMinutes)} tone="green" />
+          <StatPill label="Regular" value={formatMinutes(ts.regularMinutes)} tone="amber" />
+          <StatPill label="Overtime" value={formatMinutes(ts.overtimeMinutes)} tone="blue" />
+        </div>
       </CardBody>
     </Card>
   );
